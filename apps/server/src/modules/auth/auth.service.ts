@@ -5,10 +5,6 @@ import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../uti
 import { sendVerificationEmail, sendPasswordResetEmail } from '../../utils/email'
 import { RegisterInput, LoginInput } from './auth.validator'
 
-// Service: business logic lives here.
-// Calls repository for DB, calls utils for JWT/email.
-// Never touches req/res — that's the controller's job.
-
 export async function register(input: RegisterInput) {
   const existingCompany = await repo.findCompanyBySlug(input.companySlug)
   if (existingCompany) throw new Error('Company slug already taken')
@@ -104,7 +100,7 @@ export async function forgotPassword(email: string, companySlug: string) {
   if (!user) return
 
   const token = crypto.randomBytes(32).toString('hex')
-  const expiry = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+  const expiry = new Date(Date.now() + 60 * 60 * 1000)
   await repo.setResetToken(user.id, token, expiry)
   await sendPasswordResetEmail(user.email, token).catch(console.warn)
 }

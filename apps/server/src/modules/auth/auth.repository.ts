@@ -1,9 +1,6 @@
 import { prisma } from '../../prisma/client'
 import { Role } from '@prisma/client'
 
-// Repository: the ONLY layer that talks to the database.
-// Services call these functions. Services never call prisma directly.
-
 export async function findCompanyBySlug(slug: string) {
   return prisma.company.findUnique({ where: { slug } })
 }
@@ -17,7 +14,6 @@ export async function createCompanyAndAdmin(data: {
   passwordHash: string
   verifyToken: string
 }) {
-  // Prisma transaction: both inserts happen or neither does
   return prisma.$transaction(async (tx) => {
     const company = await tx.company.create({
       data: { name: data.companyName, slug: data.companySlug },

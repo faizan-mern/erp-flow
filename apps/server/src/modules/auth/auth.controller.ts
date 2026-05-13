@@ -5,14 +5,11 @@ import { sendSuccess, sendError } from '../../utils/response'
 import { AuthRequest } from '../../types'
 
 const COOKIE_OPTIONS = {
-  httpOnly: true,      // JS cannot read this cookie (XSS protection)
+  httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'strict' as const,
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+  maxAge: 7 * 24 * 60 * 60 * 1000,
 }
-
-// Controller: reads request, calls service, sends response.
-// No business logic here — just the HTTP layer.
 
 export async function register(req: Request, res: Response, next: NextFunction) {
   try {
@@ -63,7 +60,7 @@ export async function logout(req: Request, res: Response, next: NextFunction) {
 
 export async function verifyEmail(req: Request, res: Response, next: NextFunction) {
   try {
-    await service.verifyEmail(req.params.token)
+    await service.verifyEmail(req.params.token as string)
     sendSuccess(res, null, 'Email verified. You can now log in.')
   } catch (err) {
     next(err)

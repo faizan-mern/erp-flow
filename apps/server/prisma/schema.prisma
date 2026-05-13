@@ -1,0 +1,341 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── COMPANY (the tenant) ────────────────────────────────────────────────────
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  domain    String?  @unique
+  plan      Plan     @default(FREE)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users             User[]
+  employees         Employee[]
+  expenses          Expense[]
+  expenseCategories ExpenseCategory[]
+  products          Product[]
+  stockMovements    StockMovement[]
+  notifications     Notification[]
+  activityLogs      ActivityLog[]
+  aiChats           AiChat[]
+  reports           Report[]
+
+  @@map("companies")
+}
+
+enum Plan {
+  FREE
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+// ─── USER ────────────────────────────────────────────────────────────────────
+model User {
+  id            String    @id @default(uuid())
+  companyId     String
+  email         String
+  passwordHash  String
+  role          Role      @default(EMPLOYEE)
+  firstName     String
+  lastName      String
+  isVerified    Boolean   @default(false)
+  verifyToken   String?
+  resetToken    String?
+  resetTokenExp DateTime?
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  company          Company         @relation(fields: [companyId], references: [id])
+  refreshTokens    RefreshToken[]
+  employee         Employee?
+  approvedExpenses Expense[]       @relation("ApprovedBy")
+  activityLogs     ActivityLog[]
+  notifications    Notification[]
+  aiChats          AiChat[]
+  stockMovements   StockMovement[]
+
+  @@unique([email, companyId])
+  @@index([companyId])
+  @@map("users")
+}
+
+enum Role {
+  SUPER_ADMIN
+  COMPANY_ADMIN
+  MANAGER
+  EMPLOYEE
+}
+
+// ─── REFRESH TOKEN ───────────────────────────────────────────────────────────
+model RefreshToken {
+  id         String   @id @default(uuid())
+  userId     String
+  tokenHash  String   @unique
+  deviceInfo String?
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ─── EMPLOYEE ────────────────────────────────────────────────────────────────
+model Employee {
+  id         String    @id @default(uuid())
+  companyId  String
+  userId     String?   @unique
+  firstName  String
+  lastName   String
+  department String?
+  position   String?
+  hireDate   DateTime? @db.Date
+  salary     Decimal?  @db.Decimal(12, 2)
+  phone      String?
+  address    String?
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  company    Company      @relation(fields: [companyId], references: [id])
+  user       User?        @relation(fields: [userId], references: [id])
+  attendance Attendance[]
+  expenses   Expense[]
+
+  @@index([companyId])
+  @@map("employees")
+}
+
+// ─── ATTENDANCE ──────────────────────────────────────────────────────────────
+model Attendance {
+  id         String           @id @default(uuid())
+  companyId  String
+  employeeId String
+  date       DateTime         @db.Date
+  checkIn    DateTime?
+  checkOut   DateTime?
+  status     AttendanceStatus @default(PRESENT)
+  notes      String?
+  createdAt  DateTime         @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@unique([employeeId, date])
+  @@index([companyId, date])
+  @@map("attendance")
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  HALF_DAY
+  ON_LEAVE
+}
+
+// ─── EXPENSE CATEGORY ────────────────────────────────────────────────────────
+model ExpenseCategory {
+  id        String   @id @default(uuid())
+  companyId String
+  name      String
+  color     String   @default("#6366f1")
+  createdAt DateTime @default(now())
+
+  company  Company   @relation(fields: [companyId], references: [id])
+  expenses Expense[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+  @@map("expense_categories")
+}
+
+// ─── EXPENSE ─────────────────────────────────────────────────────────────────
+model Expense {
+  id           String        @id @default(uuid())
+  companyId    String
+  employeeId   String
+  categoryId   String?
+  title        String
+  amount       Decimal       @db.Decimal(12, 2)
+  currency     String        @default("USD")
+  status       ExpenseStatus @default(PENDING)
+  approvedById String?
+  approvedAt   DateTime?
+  invoiceUrl   String?
+  notes        String?
+  expenseDate  DateTime      @db.Date
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  company    Company          @relation(fields: [companyId], references: [id])
+  employee   Employee         @relation(fields: [employeeId], references: [id])
+  category   ExpenseCategory? @relation(fields: [categoryId], references: [id])
+  approvedBy User?            @relation("ApprovedBy", fields: [approvedById], references: [id])
+
+  @@index([companyId, status])
+  @@index([companyId, expenseDate])
+  @@map("expenses")
+}
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ─── PRODUCT ─────────────────────────────────────────────────────────────────
+model Product {
+  id                String   @id @default(uuid())
+  companyId         String
+  name              String
+  sku               String
+  description       String?
+  category          String?
+  unitPrice         Decimal  @db.Decimal(12, 2)
+  quantity          Int      @default(0)
+  lowStockThreshold Int      @default(10)
+  warehouseLocation String?
+  barcode           String?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  company        Company         @relation(fields: [companyId], references: [id])
+  stockMovements StockMovement[]
+
+  @@unique([companyId, sku])
+  @@index([companyId])
+  @@map("products")
+}
+
+// ─── STOCK MOVEMENT ──────────────────────────────────────────────────────────
+model StockMovement {
+  id               String            @id @default(uuid())
+  companyId        String
+  productId        String
+  type             StockMovementType
+  quantity         Int
+  previousQuantity Int
+  newQuantity      Int
+  reason           String?
+  performedById    String
+  createdAt        DateTime          @default(now())
+
+  company     Company           @relation(fields: [companyId], references: [id])
+  product     Product           @relation(fields: [productId], references: [id])
+  performedBy User              @relation(fields: [performedById], references: [id])
+
+  @@index([companyId, productId])
+  @@index([companyId, createdAt])
+  @@map("stock_movements")
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  ADJUSTMENT
+}
+
+// ─── NOTIFICATION ────────────────────────────────────────────────────────────
+model Notification {
+  id        String   @id @default(uuid())
+  companyId String
+  userId    String
+  type      String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  data      Json?
+  createdAt DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([companyId, userId, isRead])
+  @@map("notifications")
+}
+
+// ─── ACTIVITY LOG ────────────────────────────────────────────────────────────
+model ActivityLog {
+  id           String   @id @default(uuid())
+  companyId    String
+  userId       String
+  action       String
+  resourceType String
+  resourceId   String?
+  details      Json?
+  ipAddress    String?
+  createdAt    DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([companyId, createdAt])
+  @@index([companyId, userId])
+  @@map("activity_logs")
+}
+
+// ─── AI CHAT ─────────────────────────────────────────────────────────────────
+model AiChat {
+  id        String     @id @default(uuid())
+  companyId String
+  userId    String
+  title     String     @default("New Chat")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  company  Company     @relation(fields: [companyId], references: [id])
+  user     User        @relation(fields: [userId], references: [id])
+  messages AiMessage[]
+
+  @@index([companyId, userId])
+  @@map("ai_chats")
+}
+
+// ─── AI MESSAGE ──────────────────────────────────────────────────────────────
+model AiMessage {
+  id        String      @id @default(uuid())
+  chatId    String
+  role      MessageRole
+  content   String
+  metadata  Json?
+  createdAt DateTime    @default(now())
+
+  chat AiChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId])
+  @@map("ai_messages")
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}
+
+// ─── REPORT ──────────────────────────────────────────────────────────────────
+model Report {
+  id            String   @id @default(uuid())
+  companyId     String
+  generatedById String
+  type          String
+  title         String
+  data          Json
+  createdAt     DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, type])
+  @@map("reports")
+}

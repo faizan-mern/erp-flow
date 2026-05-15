@@ -3,7 +3,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { CheckCircle } from 'lucide-react'
 import api from '@/lib/api'
+import { Card } from '@/components/ui/card'
+import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -31,11 +36,10 @@ export default function RegisterPage() {
     }))
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError('')
     setLoading(true)
-
     try {
       await api.post('/api/auth/register', form)
       setSuccess('Company registered! Check your email to verify your account, then log in.')
@@ -51,123 +55,69 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center">
-        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <span className="text-green-600 text-xl">✓</span>
+      <Card className="w-full max-w-md p-8 shadow-sm text-center">
+        <div className="w-12 h-12 bg-success-soft rounded-full flex items-center justify-center mx-auto mb-4">
+          <CheckCircle size={22} className="text-success" />
         </div>
-        <h2 className="text-xl font-semibold text-slate-900 mb-2">You&apos;re all set</h2>
-        <p className="text-slate-500 text-sm mb-6">{success}</p>
-        <button
-          onClick={() => router.push('/login')}
-          className="bg-indigo-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700"
-        >
+        <h2 className="text-xl font-semibold text-strong mb-2">You&apos;re all set</h2>
+        <p className="text-muted text-sm mb-6">{success}</p>
+        <Button onClick={() => router.push('/login')}>
           Go to login
-        </button>
-      </div>
+        </Button>
+      </Card>
     )
   }
 
   return (
-    <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+    <Card className="w-full max-w-md p-8 shadow-sm">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-slate-900">Create your company</h1>
-        <p className="text-slate-500 mt-1 text-sm">Set up your ERP workspace</p>
+        <h1 className="text-2xl font-semibold text-strong">Create your company</h1>
+        <p className="text-muted mt-1 text-sm">Set up your ERPFlow workspace</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Company Name</label>
-          <input
-            name="companyName"
-            value={form.companyName}
-            onChange={handleChange}
-            placeholder="Acme Corp"
-            required
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
+        <Field label="Company Name">
+          <Input name="companyName" value={form.companyName} onChange={handleChange} placeholder="Acme Corp" required />
+        </Field>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Company Slug</label>
-          <input
-            name="companySlug"
-            value={form.companySlug}
-            onChange={handleChange}
-            placeholder="acme-corp"
-            required
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
-          />
-          <p className="text-xs text-slate-400 mt-1">Used in your login URL. Lowercase letters, numbers, hyphens only.</p>
-        </div>
+        <Field label="Company Slug" hint="Used in your login URL. Lowercase letters, numbers, hyphens only.">
+          <Input name="companySlug" value={form.companySlug} onChange={handleChange} placeholder="acme-corp" required className="font-mono" />
+        </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">First Name</label>
-            <input
-              name="firstName"
-              value={form.firstName}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Last Name</label>
-            <input
-              name="lastName"
-              value={form.lastName}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
+          <Field label="First Name">
+            <Input name="firstName" value={form.firstName} onChange={handleChange} required />
+          </Field>
+          <Field label="Last Name">
+            <Input name="lastName" value={form.lastName} onChange={handleChange} required />
+          </Field>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-          <input
-            name="email"
-            type="email"
-            value={form.email}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
+        <Field label="Email">
+          <Input name="email" type="email" value={form.email} onChange={handleChange} required />
+        </Field>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-          <input
-            name="password"
-            type="password"
-            value={form.password}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
+        <Field label="Password">
+          <Input name="password" type="password" value={form.password} onChange={handleChange} required />
+        </Field>
 
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          <p className="text-[13px] text-danger bg-danger-soft border border-danger/20 rounded-lg px-3 py-2">
             {error}
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-        >
+        <Button type="submit" disabled={loading} className="w-full">
           {loading ? 'Creating account...' : 'Create account'}
-        </button>
+        </Button>
       </form>
 
-      <p className="text-center text-sm text-slate-500 mt-6">
+      <p className="text-center text-sm text-muted mt-6">
         Already have an account?{' '}
-        <Link href="/login" className="text-indigo-600 hover:underline font-medium">
+        <Link href="/login" className="text-primary hover:underline font-medium">
           Sign in
         </Link>
       </p>
-    </div>
+    </Card>
   )
 }

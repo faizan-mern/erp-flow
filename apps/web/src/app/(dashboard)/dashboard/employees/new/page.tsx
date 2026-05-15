@@ -4,8 +4,14 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { createEmployee, CreateEmployeeData } from '@/lib/employees'
 import { PageTransition } from '@/components/ui/page-transition'
+import { Card } from '@/components/ui/card'
+import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page-header'
 
 const EMPTY_FORM: CreateEmployeeData = {
   firstName: '',
@@ -46,7 +52,7 @@ export default function NewEmployeePage() {
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError('')
-    const payload: CreateEmployeeData = {
+    mutation.mutate({
       ...form,
       salary: form.salary ? Number(form.salary) : undefined,
       department: form.department || undefined,
@@ -54,139 +60,123 @@ export default function NewEmployeePage() {
       phone: form.phone || undefined,
       address: form.address || undefined,
       hireDate: form.hireDate ? new Date(form.hireDate).toISOString() : undefined,
-    }
-    mutation.mutate(payload)
+    })
   }
 
   return (
-    <div className="max-w-xl">
-      <div className="mb-6 flex items-center gap-3">
-        <Link href="/dashboard/employees" className="text-slate-400 hover:text-slate-600 text-sm">
-          ← Employees
-        </Link>
-        <span className="text-slate-300">/</span>
-        <h2 className="text-xl font-semibold text-slate-900">Add Employee</h2>
+    <PageTransition>
+      <div>
+        <div className="flex items-center gap-2 mb-6 text-[13px]">
+          <Link
+            href="/dashboard/employees"
+            className="flex items-center gap-1.5 text-muted hover:text-strong transition-colors"
+          >
+            <ArrowLeft size={13} />
+            Employees
+          </Link>
+          <span className="text-border">/</span>
+          <span className="text-strong font-medium">Add Employee</span>
+        </div>
+
+        <PageHeader
+          title="Add Employee"
+          subtitle="Fill in the details below to add a new employee to your team."
+        />
+
+        <div className="flex gap-6 items-start">
+          <Card className="flex-1 min-w-0 p-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
+
+              <div>
+                <p className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-3">Personal</p>
+                <div className="grid grid-cols-2 gap-4 max-w-xl">
+                  <Field label="First Name">
+                    <Input name="firstName" value={form.firstName} onChange={handleChange} required />
+                  </Field>
+                  <Field label="Last Name">
+                    <Input name="lastName" value={form.lastName} onChange={handleChange} required />
+                  </Field>
+                </div>
+              </div>
+
+              <div className="border-t border-divider" />
+
+              <div>
+                <p className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-3">Employment</p>
+                <div className="grid grid-cols-2 gap-4 max-w-xl mb-4">
+                  <Field label="Department">
+                    <Input name="department" value={form.department} onChange={handleChange} placeholder="e.g. Engineering" />
+                  </Field>
+                  <Field label="Position">
+                    <Input name="position" value={form.position} onChange={handleChange} placeholder="e.g. Software Engineer" />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-4 max-w-xl">
+                  <Field label="Hire Date">
+                    <Input name="hireDate" type="date" value={form.hireDate} onChange={handleChange} />
+                  </Field>
+                  <Field label="Salary (USD)">
+                    <Input name="salary" type="number" value={form.salary ?? ''} onChange={handleChange} placeholder="e.g. 60000" />
+                  </Field>
+                </div>
+              </div>
+
+              <div className="border-t border-divider" />
+
+              <div>
+                <p className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-3">Contact</p>
+                <div className="grid grid-cols-2 gap-4 max-w-xl">
+                  <Field label="Phone">
+                    <Input name="phone" value={form.phone} onChange={handleChange} placeholder="+1 555 000 0000" />
+                  </Field>
+                  <Field label="Address">
+                    <Input name="address" value={form.address} onChange={handleChange} placeholder="123 Main St, City" />
+                  </Field>
+                </div>
+              </div>
+
+              {error && (
+                <p className="text-[13px] text-danger bg-danger-soft border border-danger/20 rounded-lg px-3 py-2">
+                  {error}
+                </p>
+              )}
+
+              <div className="flex gap-3 pt-1">
+                <Button type="submit" disabled={mutation.isPending}>
+                  {mutation.isPending ? 'Saving...' : 'Add Employee'}
+                </Button>
+                <Link
+                  href="/dashboard/employees"
+                  className="inline-flex items-center px-5 py-2 rounded-lg text-[13px] font-medium text-muted border border-border hover:bg-canvas transition-colors"
+                >
+                  Cancel
+                </Link>
+              </div>
+            </form>
+          </Card>
+
+          <div className="w-72 shrink-0">
+            <Card className="p-5">
+              <p className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-3">Required fields</p>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-[13px] text-strong">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                  First name
+                </div>
+                <div className="flex items-center gap-2 text-[13px] text-strong">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                  Last name
+                </div>
+              </div>
+              <div className="border-t border-divider mt-4 pt-4">
+                <p className="text-[12px] text-muted leading-relaxed">
+                  All other fields are optional and can be filled in later from the employee profile.
+                </p>
+              </div>
+            </Card>
+          </div>
+        </div>
       </div>
-
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">First Name</label>
-              <input
-                name="firstName"
-                value={form.firstName}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Last Name</label>
-              <input
-                name="lastName"
-                value={form.lastName}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Department</label>
-              <input
-                name="department"
-                value={form.department}
-                onChange={handleChange}
-                placeholder="e.g. Engineering"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Position</label>
-              <input
-                name="position"
-                value={form.position}
-                onChange={handleChange}
-                placeholder="e.g. Software Engineer"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Hire Date</label>
-              <input
-                name="hireDate"
-                type="date"
-                value={form.hireDate}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Salary (USD)
-              </label>
-              <input
-                name="salary"
-                type="number"
-                value={form.salary ?? ''}
-                onChange={handleChange}
-                placeholder="e.g. 60000"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
-            <input
-              name="phone"
-              value={form.phone}
-              onChange={handleChange}
-              placeholder="+1 555 000 0000"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
-            <input
-              name="address"
-              value={form.address}
-              onChange={handleChange}
-              placeholder="123 Main St, City"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
-          {error && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-              {error}
-            </p>
-          )}
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={mutation.isPending}
-              className="bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-            >
-              {mutation.isPending ? 'Saving...' : 'Add Employee'}
-            </button>
-            <Link
-              href="/dashboard/employees"
-              className="px-5 py-2 rounded-lg text-sm font-medium text-slate-600 border border-slate-300 hover:bg-slate-50 transition-colors"
-            >
-              Cancel
-            </Link>
-          </div>
-        </form>
-      </div>
-    </div>
+    </PageTransition>
   )
 }

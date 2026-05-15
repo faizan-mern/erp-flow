@@ -4,7 +4,7 @@ import { QueryProvider } from '@/providers/query-provider'
 import { AuthProvider } from '@/providers/auth-provider'
 
 export const metadata: Metadata = {
-  title: 'ERP Platform',
+  title: 'ERPFlow',
   description: 'Enterprise resource planning platform',
 }
 

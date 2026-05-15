@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth.store'
+import { Card } from '@/components/ui/card'
+import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -18,11 +22,10 @@ export default function LoginPage() {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError('')
     setLoading(true)
-
     try {
       const res = await api.post('/api/auth/login', form)
       const { accessToken, user } = res.data.data
@@ -39,77 +42,42 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+    <Card className="w-full max-w-md p-8 shadow-sm">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-slate-900">Welcome back</h1>
-        <p className="text-slate-500 mt-1 text-sm">Sign in to your company account</p>
+        <h1 className="text-2xl font-semibold text-strong">Welcome back</h1>
+        <p className="text-muted mt-1 text-sm">Sign in to your company account</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Company Slug
-          </label>
-          <input
-            name="companySlug"
-            value={form.companySlug}
-            onChange={handleChange}
-            placeholder="e.g. acme-corp"
-            required
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
+        <Field label="Company Slug">
+          <Input name="companySlug" value={form.companySlug} onChange={handleChange} placeholder="e.g. acme-corp" required />
+        </Field>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Email
-          </label>
-          <input
-            name="email"
-            type="email"
-            value={form.email}
-            onChange={handleChange}
-            placeholder="you@company.com"
-            required
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
+        <Field label="Email">
+          <Input name="email" type="email" value={form.email} onChange={handleChange} placeholder="you@company.com" required />
+        </Field>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Password
-          </label>
-          <input
-            name="password"
-            type="password"
-            value={form.password}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
+        <Field label="Password">
+          <Input name="password" type="password" value={form.password} onChange={handleChange} required />
+        </Field>
 
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          <p className="text-[13px] text-danger bg-danger-soft border border-danger/20 rounded-lg px-3 py-2">
             {error}
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-        >
+        <Button type="submit" disabled={loading} className="w-full">
           {loading ? 'Signing in...' : 'Sign in'}
-        </button>
+        </Button>
       </form>
 
-      <p className="text-center text-sm text-slate-500 mt-6">
+      <p className="text-center text-sm text-muted mt-6">
         No account?{' '}
-        <Link href="/register" className="text-indigo-600 hover:underline font-medium">
+        <Link href="/register" className="text-primary hover:underline font-medium">
           Register your company
         </Link>
       </p>
-    </div>
+    </Card>
   )
 }

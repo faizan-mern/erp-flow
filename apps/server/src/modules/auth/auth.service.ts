@@ -55,7 +55,7 @@ export async function login(input: LoginInput, deviceInfo?: string) {
   return {
     accessToken,
     refreshToken,
-    user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role },
+    user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, companyName: company.name },
   }
 }
 

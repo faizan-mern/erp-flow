@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser'
 import rateLimit from 'express-rate-limit'
 
 import authRoutes from './modules/auth/auth.routes'
+import employeeRoutes from './modules/employee/employee.routes'
 import { errorHandler } from './middleware/error.middleware'
 
 const app = express()
@@ -24,6 +25,7 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
 app.use('/api/auth', authRoutes)
+app.use('/api/employees', employeeRoutes)
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
 
 app.use(errorHandler)

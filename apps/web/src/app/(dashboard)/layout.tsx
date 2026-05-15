@@ -4,13 +4,22 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import api from '@/lib/api'
+import {
+  LayoutDashboard,
+  Users,
+  Receipt,
+  Package,
+  Sparkles,
+  LogOut,
+  ChevronRight,
+} from 'lucide-react'
 
 const NAV_LINKS = [
-  { href: '/dashboard', label: 'Dashboard', icon: '▦' },
-  { href: '/dashboard/employees', label: 'Employees', icon: '👥' },
-  { href: '/dashboard/expenses', label: 'Expenses', icon: '💰' },
-  { href: '/dashboard/inventory', label: 'Inventory', icon: '📦' },
-  { href: '/dashboard/ai', label: 'AI Assistant', icon: '✨' },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/employees', label: 'Employees', icon: Users },
+  { href: '/dashboard/expenses', label: 'Expenses', icon: Receipt },
+  { href: '/dashboard/inventory', label: 'Inventory', icon: Package },
+  { href: '/dashboard/ai', label: 'AI Assistant', icon: Sparkles },
 ]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -27,62 +36,86 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }
 
-  return (
-    <div className="flex h-screen bg-slate-50">
+  const pageLabel = pathname === '/dashboard'
+    ? 'Dashboard'
+    : NAV_LINKS.find((l) => pathname.startsWith(l.href) && l.href !== '/dashboard')?.label ?? 'Dashboard'
 
-      <aside className="w-60 bg-white border-r border-slate-200 flex flex-col">
-        <div className="px-5 py-5 border-b border-slate-100">
-          <span className="font-bold text-slate-900 text-lg">ERP Platform</span>
+  return (
+    <div className="flex h-screen bg-[#f8fafc]">
+
+      {/* Sidebar */}
+      <aside className="w-56 bg-white border-r border-[#e2e8f0] flex flex-col shrink-0">
+
+        {/* Brand */}
+        <div className="px-4 h-14 flex items-center border-b border-[#e2e8f0]">
+          <span className="text-[15px] font-semibold text-[#0f172a] tracking-tight">
+            ERP Platform
+          </span>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          {NAV_LINKS.map((link) => {
-            const isActive = pathname === link.href
+        {/* Nav */}
+        <nav className="flex-1 px-2 py-3 space-y-0.5">
+          {NAV_LINKS.map(({ href, label, icon: Icon }) => {
+            const isActive =
+              href === '/dashboard'
+                ? pathname === '/dashboard'
+                : pathname.startsWith(href)
+
             return (
               <Link
-                key={link.href}
-                href={link.href}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                key={href}
+                href={href}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-colors ${
                   isActive
-                    ? 'bg-indigo-50 text-indigo-700 font-medium'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-[#64748b] hover:bg-slate-50 hover:text-[#0f172a]'
                 }`}
               >
-                <span>{link.icon}</span>
-                {link.label}
+                <Icon size={15} strokeWidth={isActive ? 2.2 : 1.8} />
+                {label}
               </Link>
             )
           })}
         </nav>
 
-        <div className="px-4 py-4 border-t border-slate-100">
+        {/* User */}
+        <div className="px-3 py-3 border-t border-[#e2e8f0]">
           {user && (
-            <div className="mb-3">
-              <p className="text-sm font-medium text-slate-900">
+            <div className="mb-2 px-1">
+              <p className="text-[13px] font-medium text-[#0f172a] truncate">
                 {user.firstName} {user.lastName}
               </p>
-              <p className="text-xs text-slate-400 capitalize">{user.role.replace('_', ' ').toLowerCase()}</p>
+              <p className="text-[11px] text-[#64748b] capitalize mt-0.5">
+                {user.role.replace(/_/g, ' ').toLowerCase()}
+              </p>
             </div>
           )}
           <button
             onClick={handleLogout}
-            className="w-full text-left text-sm text-slate-500 hover:text-red-600 transition-colors"
+            className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-[12px] text-[#64748b] hover:text-red-600 hover:bg-red-50 transition-colors"
           >
+            <LogOut size={13} />
             Sign out
           </button>
         </div>
       </aside>
 
+      {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-          <h1 className="text-sm font-medium text-slate-500 capitalize">
-            {pathname.split('/').pop() || 'dashboard'}
-          </h1>
-          <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded-full">
-            {user?.role?.replace('_', ' ')}
+
+        {/* Header */}
+        <header className="h-14 bg-white border-b border-[#e2e8f0] px-6 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-1.5 text-[13px] text-[#64748b]">
+            <span>ERP</span>
+            <ChevronRight size={13} />
+            <span className="text-[#0f172a] font-medium">{pageLabel}</span>
+          </div>
+          <span className="text-[11px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+            {user?.role?.replace(/_/g, ' ')}
           </span>
         </header>
 
+        {/* Page content */}
         <main className="flex-1 overflow-auto p-6">
           {children}
         </main>

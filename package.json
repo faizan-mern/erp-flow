@@ -1,0 +1,17 @@
+{
+  "name": "erp-platform",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:web": "npm run dev --prefix apps/web",
+    "dev:server": "npm run dev --prefix apps/server",
+    "build:web": "npm run build --prefix apps/web",
+    "build:server": "npm run build --prefix apps/server",
+    "lint:web": "npm run lint --prefix apps/web",
+    "db:migrate": "npm run db:migrate --prefix apps/server",
+    "db:studio": "npm run db:studio --prefix apps/server",
+    "infra:up": "docker-compose up -d",
+    "infra:down": "docker-compose down",
+    "compose:check": "docker-compose --env-file .env.example -f docker-compose.prod.yml config"
+  }
+}

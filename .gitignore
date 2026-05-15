@@ -1,7 +1,7 @@
 # Dependencies
 node_modules/
 
-# Environment files — NEVER commit these
+# Environment files - NEVER commit these
 .env
 .env.local
 .env.production
@@ -23,16 +23,13 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 
-# ── Internal docs — dev notes, session logs, learning tracker ──────────────
-# These are for development reference only, not part of the public repo.
-# Before final submission, copy ARCHITECTURE.md and DATABASE.md into README.md
-docs/
-
-# ── Claude Code internal files ───────────────────────────────────────────────
+# AI/session planning files - keep local, do not publish
+AGENTS.md
 CLAUDE.md
 .claude/
+docs/
 
-# ── Next.js boilerplate we don't use ────────────────────────────────────────
+# Next.js boilerplate we don't use
 apps/web/public/next.svg
 apps/web/public/vercel.svg
 apps/web/public/globe.svg
@@ -42,7 +39,7 @@ apps/web/AGENTS.md
 apps/web/CLAUDE.md
 apps/web/README.md
 
-# Assessment document
+# Assessment/private source documents
 *.docx
 *.doc
 

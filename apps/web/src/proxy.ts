@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 const PUBLIC_ROUTES = ['/login', '/register']
 const PROTECTED_PREFIX = '/dashboard'
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   const hasSession = req.cookies.has('refreshToken')

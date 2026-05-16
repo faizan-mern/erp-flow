@@ -7,6 +7,7 @@ import api from '@/lib/api'
 import {
   LayoutDashboard,
   Users,
+  Clock,
   Receipt,
   Package,
   Sparkles,
@@ -18,6 +19,7 @@ import {
 const NAV_LINKS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/employees', label: 'Employees', icon: Users },
+  { href: '/dashboard/attendance', label: 'Attendance', icon: Clock },
   { href: '/dashboard/expenses', label: 'Expenses', icon: Receipt },
   { href: '/dashboard/inventory', label: 'Inventory', icon: Package },
   { href: '/dashboard/ai-assistant', label: 'AI Assistant', icon: Sparkles },

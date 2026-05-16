@@ -8,9 +8,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setAccessToken, logout } = useAuthStore()
 
   useEffect(() => {
+    const persistedUser = useAuthStore.getState().user
+    if (!persistedUser) return
+
     const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
     axios
-      .post(`${BASE_URL}/api/auth/refresh`, {}, { withCredentials: true })
+      .post(`${BASE_URL}/api/v1/auth/refresh`, {}, { withCredentials: true })
       .then((res) => {
         setAccessToken(res.data.data.accessToken)
       })

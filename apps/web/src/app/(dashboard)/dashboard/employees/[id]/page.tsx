@@ -4,9 +4,9 @@ import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
-import { ArrowLeft, LogIn, LogOut } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import {
-  fetchEmployee, updateEmployee, fetchAttendance, checkIn, checkOut,
+  fetchEmployee, updateEmployee, fetchAttendance,
   CreateEmployeeData, AttendanceRecord,
 } from '@/lib/employees'
 import { useAuthStore } from '@/store/auth.store'
@@ -38,7 +38,6 @@ export default function EditEmployeePage() {
   const [overrides, setOverrides] = useState<Partial<CreateEmployeeData>>({})
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
-  const [attendanceError, setAttendanceError] = useState('')
 
   const { data: employee, isLoading } = useQuery({
     queryKey: ['employee', id],
@@ -78,30 +77,6 @@ export default function EditEmployeePage() {
     },
   })
 
-  const checkInMutation = useMutation({
-    mutationFn: () => checkIn(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['attendance', id] })
-      setAttendanceError('')
-    },
-    onError: (err: unknown) => {
-      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Check-in failed.'
-      setAttendanceError(message)
-    },
-  })
-
-  const checkOutMutation = useMutation({
-    mutationFn: () => checkOut(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['attendance', id] })
-      setAttendanceError('')
-    },
-    onError: (err: unknown) => {
-      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Check-out failed.'
-      setAttendanceError(message)
-    },
-  })
-
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setOverrides((prev) => ({ ...prev, [e.target.name]: e.target.value }))
   }
@@ -119,11 +94,6 @@ export default function EditEmployeePage() {
       hireDate:   form.hireDate ? new Date(form.hireDate as string).toISOString() : undefined,
     })
   }
-
-  const todayRecord = attendance.find((r) => {
-    const recordDate = new Date(r.date).toDateString()
-    return recordDate === new Date().toDateString()
-  })
 
   if (isLoading) {
     return <div className="p-10 text-center text-[13px] text-muted">Loading employee...</div>
@@ -173,17 +143,20 @@ export default function EditEmployeePage() {
 
         {/* Tabs */}
         <div className="flex gap-1 mb-4 border-b border-border">
-          {(['details', 'attendance'] as Tab[]).map((t) => (
+          {([
+            { id: 'details' as Tab, label: 'Details' },
+            { id: 'attendance' as Tab, label: 'Attendance History' },
+          ]).map(({ id, label }) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-4 py-2 text-[13px] font-medium capitalize transition-colors border-b-2 -mb-px ${
-                tab === t
+              key={id}
+              onClick={() => setTab(id)}
+              className={`px-4 py-2 text-[13px] font-medium transition-colors border-b-2 -mb-px ${
+                tab === id
                   ? 'text-primary border-primary'
                   : 'text-muted border-transparent hover:text-strong'
               }`}
             >
-              {t}
+              {label}
             </button>
           ))}
         </div>
@@ -250,65 +223,34 @@ export default function EditEmployeePage() {
                     <Badge variant={employee.isActive ? 'active' : 'inactive'}>{employee.isActive ? 'Active' : 'Inactive'}</Badge>
                   </div>
                   <div>
-                    <p className="text-[11px] text-muted mb-1">Employee ID</p>
-                    <p className="text-[12px] font-mono text-strong">{employee.id.slice(0, 8)}</p>
+                    <p className="text-[11px] text-muted mb-1">Hired</p>
+                    <p className="text-[12px] text-strong">
+                      {employee.hireDate
+                        ? new Date(employee.hireDate).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })
+                        : '—'}
+                    </p>
                   </div>
-                  {employee.user?.email && (
-                    <div>
-                      <p className="text-[11px] text-muted mb-1">Login Email</p>
-                      <p className="text-[12px] text-strong truncate">{employee.user.email}</p>
-                    </div>
-                  )}
+                  <div>
+                    <p className="text-[11px] text-muted mb-1">Login Email</p>
+                    <p className="text-[12px] text-strong truncate">
+                      {employee.user?.email ?? <span className="text-muted">Not a system user</span>}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-muted mb-1">Created</p>
+                    <p className="text-[12px] text-strong">
+                      {new Date(employee.createdAt).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })}
+                    </p>
+                  </div>
                 </div>
               </Card>
             </div>
           </div>
         )}
 
-        {/* Attendance tab */}
+        {/* Attendance tab — read-only history */}
         {tab === 'attendance' && (
           <div className="space-y-4">
-            {/* Today's check-in/out */}
-            <Card className="p-5">
-              <p className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-3">Today</p>
-              {attendanceError && (
-                <p className="text-[13px] text-danger bg-danger-soft border border-danger/20 rounded-lg px-3 py-2 mb-3">
-                  {attendanceError}
-                </p>
-              )}
-              <div className="flex items-center gap-3">
-                {!todayRecord ? (
-                  <Button
-                    onClick={() => checkInMutation.mutate()}
-                    disabled={checkInMutation.isPending}
-                  >
-                    <LogIn size={14} className="mr-1.5" />
-                    {checkInMutation.isPending ? 'Checking in...' : 'Check In'}
-                  </Button>
-                ) : !todayRecord.checkOut ? (
-                  <>
-                    <p className="text-[13px] text-muted">
-                      Checked in at <strong className="text-strong">{new Date(todayRecord.checkIn!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong>
-                    </p>
-                    <Button
-                      variant="secondary"
-                      onClick={() => checkOutMutation.mutate()}
-                      disabled={checkOutMutation.isPending}
-                    >
-                      <LogOut size={14} className="mr-1.5" />
-                      {checkOutMutation.isPending ? 'Checking out...' : 'Check Out'}
-                    </Button>
-                  </>
-                ) : (
-                  <p className="text-[13px] text-muted">
-                    Checked in <strong className="text-strong">{new Date(todayRecord.checkIn!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong>
-                    {' '}· Checked out <strong className="text-strong">{new Date(todayRecord.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong>
-                  </p>
-                )}
-              </div>
-            </Card>
-
-            {/* History */}
             <Card className="overflow-hidden">
               <div className="px-5 py-3 border-b border-border">
                 <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">Attendance History</p>

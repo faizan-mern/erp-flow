@@ -6,6 +6,11 @@ node_modules/
 .env.local
 .env.production
 
+# Local API test artifacts (contain real JWTs / tokens — never commit)
+cookies.txt
+login.json
+*.cookies.txt
+
 # Build outputs
 .next/
 dist/

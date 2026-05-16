@@ -51,6 +51,11 @@ export async function fetchEmployee(id: string): Promise<Employee> {
   return res.data.data
 }
 
+export async function fetchMyEmployee(): Promise<Employee> {
+  const res = await api.get('/api/v1/employees/me')
+  return res.data.data
+}
+
 export async function createEmployee(data: CreateEmployeeData): Promise<Employee> {
   const res = await api.post('/api/v1/employees', data)
   return res.data.data
@@ -80,12 +85,12 @@ export async function fetchAttendance(employeeId: string): Promise<AttendanceRec
   return res.data.data
 }
 
-export async function checkIn(employeeId: string): Promise<AttendanceRecord> {
-  const res = await api.post('/api/v1/employees/attendance/checkin', { employeeId })
+export async function checkIn(): Promise<AttendanceRecord> {
+  const res = await api.post('/api/v1/employees/attendance/checkin', {})
   return res.data.data
 }
 
-export async function checkOut(employeeId: string): Promise<AttendanceRecord> {
-  const res = await api.post('/api/v1/employees/attendance/checkout', { employeeId })
+export async function checkOut(): Promise<AttendanceRecord> {
+  const res = await api.post('/api/v1/employees/attendance/checkout', {})
   return res.data.data
 }

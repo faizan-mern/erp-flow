@@ -25,23 +25,29 @@ export async function deactivateEmployee(id: string, companyId: string) {
   return repo.deactivateEmployee(id, companyId)
 }
 
-export async function checkIn(companyId: string, input: AttendanceInput) {
-  await getEmployee(input.employeeId, companyId)
+export async function checkIn(companyId: string, employeeId: string, input: AttendanceInput) {
+  await getEmployee(employeeId, companyId)
 
-  const existing = await repo.findTodayAttendance(input.employeeId)
+  const existing = await repo.findTodayAttendance(employeeId)
   if (existing) throw Object.assign(new Error('Already checked in today'), { status: 409 })
 
-  return repo.createAttendanceRecord(input.employeeId, companyId, input.notes)
+  return repo.createAttendanceRecord(employeeId, companyId, input.notes)
 }
 
-export async function checkOut(companyId: string, input: AttendanceInput) {
-  await getEmployee(input.employeeId, companyId)
+export async function checkOut(companyId: string, employeeId: string) {
+  await getEmployee(employeeId, companyId)
 
-  const existing = await repo.findTodayAttendance(input.employeeId)
+  const existing = await repo.findTodayAttendance(employeeId)
   if (!existing) throw Object.assign(new Error('No check-in found for today'), { status: 400 })
   if (existing.checkOut) throw Object.assign(new Error('Already checked out today'), { status: 409 })
 
   return repo.updateAttendanceCheckout(existing.id)
+}
+
+export async function resolveCallerEmployeeId(userId: string, companyId: string) {
+  const employee = await repo.findEmployeeByUserId(userId, companyId)
+  if (!employee) throw Object.assign(new Error('No employee profile linked to this user'), { status: 404 })
+  return employee.id
 }
 
 export async function getAttendance(employeeId: string, companyId: string) {

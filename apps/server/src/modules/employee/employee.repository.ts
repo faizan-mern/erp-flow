@@ -39,6 +39,12 @@ export async function findEmployeeById(id: string, companyId: string) {
   })
 }
 
+export async function findEmployeeByUserId(userId: string, companyId: string) {
+  return prisma.employee.findFirst({
+    where: { userId, companyId },
+  })
+}
+
 export async function createEmployee(companyId: string, data: CreateEmployeeInput) {
   return prisma.employee.create({
     data: {

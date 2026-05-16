@@ -24,7 +24,6 @@ export const listEmployeesQuerySchema = z.object({
 })
 
 export const attendanceSchema = z.object({
-  employeeId: z.string().uuid('Invalid employee ID'),
   notes: z.string().optional(),
 })
 

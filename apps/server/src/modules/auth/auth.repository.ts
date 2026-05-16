@@ -29,7 +29,15 @@ export async function createCompanyAndAdmin(data: {
         verifyToken: data.verifyToken,
       },
     })
-    return { company, user }
+    const employee = await tx.employee.create({
+      data: {
+        companyId: company.id,
+        userId: user.id,
+        firstName: data.firstName,
+        lastName: data.lastName,
+      },
+    })
+    return { company, user, employee }
   })
 }
 

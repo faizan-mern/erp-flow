@@ -13,6 +13,7 @@ const h = (fn: Function) => fn as RequestHandler
 router.use(authenticate)
 
 router.get('/', h(controller.list))
+router.get('/me', h(controller.getMe))
 router.get('/:id', h(controller.getOne))
 router.get('/:id/attendance', h(controller.getAttendance))
 

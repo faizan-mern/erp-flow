@@ -29,6 +29,16 @@ export async function getOne(req: AuthRequest, res: Response, next: NextFunction
   }
 }
 
+export async function getMe(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const employeeId = await service.resolveCallerEmployeeId(req.user.userId, req.user.companyId)
+    const employee = await service.getEmployee(employeeId, req.user.companyId)
+    sendSuccess(res, employee, 'Current employee retrieved')
+  } catch (err) {
+    next(err)
+  }
+}
+
 export async function create(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const input = createEmployeeSchema.parse(req.body)
@@ -86,7 +96,8 @@ export async function deactivate(req: AuthRequest, res: Response, next: NextFunc
 export async function checkIn(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const input = attendanceSchema.parse(req.body)
-    const record = await service.checkIn(req.user.companyId, input)
+    const employeeId = await service.resolveCallerEmployeeId(req.user.userId, req.user.companyId)
+    const record = await service.checkIn(req.user.companyId, employeeId, input)
     sendSuccess(res, record, 'Checked in successfully', 201)
   } catch (err) {
     next(err)
@@ -95,8 +106,9 @@ export async function checkIn(req: AuthRequest, res: Response, next: NextFunctio
 
 export async function checkOut(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const input = attendanceSchema.parse(req.body)
-    const record = await service.checkOut(req.user.companyId, input)
+    attendanceSchema.parse(req.body)
+    const employeeId = await service.resolveCallerEmployeeId(req.user.userId, req.user.companyId)
+    const record = await service.checkOut(req.user.companyId, employeeId)
     sendSuccess(res, record, 'Checked out successfully')
   } catch (err) {
     next(err)
@@ -105,7 +117,16 @@ export async function checkOut(req: AuthRequest, res: Response, next: NextFuncti
 
 export async function getAttendance(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const records = await service.getAttendance(req.params['id'] as string, req.user.companyId)
+    const targetId = req.params['id'] as string
+
+    if (req.user.role === 'EMPLOYEE') {
+      const ownEmployeeId = await service.resolveCallerEmployeeId(req.user.userId, req.user.companyId)
+      if (ownEmployeeId !== targetId) {
+        throw Object.assign(new Error('Forbidden — employees can only view their own attendance'), { status: 403 })
+      }
+    }
+
+    const records = await service.getAttendance(targetId, req.user.companyId)
     sendSuccess(res, records, 'Attendance retrieved')
   } catch (err) {
     next(err)

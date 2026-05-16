@@ -169,7 +169,7 @@ model Expense {
   categoryId   String?
   title        String
   amount       Decimal       @db.Decimal(12, 2)
-  currency     String        @default("USD")
+  currency     String        @default("PKR")
   status       ExpenseStatus @default(PENDING)
   approvedById String?
   approvedAt   DateTime?

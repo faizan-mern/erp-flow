@@ -1,5 +1,6 @@
 import { prisma } from '../../prisma/client'
 import { CreateEmployeeInput, UpdateEmployeeInput } from './employee.validator'
+import { todayInAppTz } from '../../utils/time'
 
 export async function listEmployees(
   companyId: string,
@@ -88,23 +89,17 @@ export async function deactivateEmployee(id: string, companyId: string) {
 // ─── ATTENDANCE ──────────────────────────────────────────────────────────────
 
 export async function findTodayAttendance(employeeId: string) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
   return prisma.attendance.findUnique({
-    where: { employeeId_date: { employeeId, date: today } },
+    where: { employeeId_date: { employeeId, date: todayInAppTz() } },
   })
 }
 
 export async function createAttendanceRecord(employeeId: string, companyId: string, notes?: string) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
   return prisma.attendance.create({
     data: {
       companyId,
       employeeId,
-      date: today,
+      date: todayInAppTz(),
       checkIn: new Date(),
       notes,
     },

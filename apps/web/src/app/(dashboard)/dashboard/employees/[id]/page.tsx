@@ -184,14 +184,14 @@ export default function EditEmployeePage() {
                       </div>
                       <div className="grid grid-cols-2 gap-4 max-w-xl">
                         <Field label="Hire Date"><Input name="hireDate" type="date" value={form.hireDate} onChange={handleChange} /></Field>
-                        <Field label="Salary (USD)"><Input name="salary" type="number" value={form.salary ?? ''} onChange={handleChange} placeholder="e.g. 60000" /></Field>
+                        <Field label="Salary (PKR)"><Input name="salary" type="number" value={form.salary ?? ''} onChange={handleChange} placeholder="e.g. 150000" /></Field>
                       </div>
                     </div>
                     <div className="border-t border-divider" />
                     <div>
                       <p className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-3">Contact</p>
                       <div className="grid grid-cols-2 gap-4 max-w-xl">
-                        <Field label="Phone"><Input name="phone" value={form.phone} onChange={handleChange} placeholder="+1 555 000 0000" /></Field>
+                        <Field label="Phone"><Input name="phone" value={form.phone} onChange={handleChange} placeholder="+92 300 0000000" /></Field>
                         <Field label="Address"><Input name="address" value={form.address} onChange={handleChange} placeholder="123 Main St, City" /></Field>
                       </div>
                     </div>

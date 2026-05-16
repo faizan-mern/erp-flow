@@ -7,6 +7,7 @@ import api from '@/lib/api'
 import {
   LayoutDashboard,
   Users,
+  UserCog,
   Clock,
   Receipt,
   Package,
@@ -16,12 +17,20 @@ import {
   Layers,
 } from 'lucide-react'
 
-const NAV_LINKS = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/employees', label: 'Employees', icon: Users },
-  { href: '/dashboard/attendance', label: 'Attendance', icon: Clock },
-  { href: '/dashboard/expenses', label: 'Expenses', icon: Receipt },
-  { href: '/dashboard/inventory', label: 'Inventory', icon: Package },
+type NavLink = {
+  href: string
+  label: string
+  icon: typeof LayoutDashboard
+  adminOnly?: boolean
+}
+
+const NAV_LINKS: NavLink[] = [
+  { href: '/dashboard',              label: 'Dashboard',    icon: LayoutDashboard },
+  { href: '/dashboard/employees',    label: 'Employees',    icon: Users },
+  { href: '/dashboard/team',         label: 'Team',         icon: UserCog, adminOnly: true },
+  { href: '/dashboard/attendance',   label: 'Attendance',   icon: Clock },
+  { href: '/dashboard/expenses',     label: 'Expenses',     icon: Receipt },
+  { href: '/dashboard/inventory',    label: 'Inventory',    icon: Package },
   { href: '/dashboard/ai-assistant', label: 'AI Assistant', icon: Sparkles },
 ]
 
@@ -38,6 +47,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.push('/login')
     }
   }
+
+  const visibleLinks = NAV_LINKS.filter((l) => !l.adminOnly || user?.role === 'COMPANY_ADMIN')
 
   const pageLabel = pathname === '/dashboard'
     ? 'Dashboard'
@@ -63,7 +74,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Nav */}
         <nav className="flex-1 px-2 py-3 space-y-0.5">
-          {NAV_LINKS.map(({ href, label, icon: Icon }) => {
+          {visibleLinks.map(({ href, label, icon: Icon }) => {
             const isActive =
               href === '/dashboard'
                 ? pathname === '/dashboard'

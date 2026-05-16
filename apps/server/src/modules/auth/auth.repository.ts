@@ -39,6 +39,10 @@ export async function createCompanyAndAdmin(data: {
         lastName: data.lastName,
         role: Role.COMPANY_ADMIN,
         verifyToken: data.verifyToken,
+        // Auto-verify on register so the live demo doesn't need SMTP wired up.
+        // The verify-email endpoint + token logic stay in the codebase — flip
+        // this to false when you wire Resend/Mailtrap in production.
+        isVerified: true,
       },
     })
     const employee = await tx.employee.create({

@@ -9,6 +9,7 @@ import rateLimit from 'express-rate-limit'
 import authRoutes from './modules/auth/auth.routes'
 import employeeRoutes from './modules/employee/employee.routes'
 import expenseRoutes from './modules/expense/expense.routes'
+import userRoutes from './modules/user/user.routes'
 import { errorHandler } from './middleware/error.middleware'
 
 const app = express()
@@ -29,6 +30,7 @@ const v1 = Router()
 v1.use('/auth', authRoutes)
 v1.use('/employees', employeeRoutes)
 v1.use('/expenses', expenseRoutes)
+v1.use('/users', userRoutes)
 app.use('/api/v1', v1)
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))

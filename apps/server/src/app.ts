@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import express from 'express'
+import express, { Router } from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import morgan from 'morgan'
@@ -24,8 +24,11 @@ app.use(cookieParser())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-app.use('/api/auth', authRoutes)
-app.use('/api/employees', employeeRoutes)
+const v1 = Router()
+v1.use('/auth', authRoutes)
+v1.use('/employees', employeeRoutes)
+app.use('/api/v1', v1)
+
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
 
 app.use(errorHandler)

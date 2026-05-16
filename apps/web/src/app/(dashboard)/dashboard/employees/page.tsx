@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { Search, UserPlus } from 'lucide-react'
 import { fetchEmployees, deactivateEmployee, Employee } from '@/lib/employees'
+import { useAuthStore } from '@/store/auth.store'
 import { PageTransition } from '@/components/ui/page-transition'
 import { Badge } from '@/components/ui/badge'
 import { PageHeader } from '@/components/ui/page-header'
@@ -12,6 +13,8 @@ import { EmptyState } from '@/components/ui/empty-state'
 
 export default function EmployeesPage() {
   const queryClient = useQueryClient()
+  const { user } = useAuthStore()
+  const canWrite = user?.role === 'COMPANY_ADMIN' || user?.role === 'MANAGER'
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [page, setPage] = useState(1)
@@ -44,13 +47,15 @@ export default function EmployeesPage() {
         title="Employees"
         subtitle={data ? `${data.total} total` : ''}
         action={
-          <Link
-            href="/dashboard/employees/new"
-            className="inline-flex items-center gap-2 bg-primary text-white px-3.5 py-2 rounded-lg text-[13px] font-medium hover:bg-primary-hover transition-colors"
-          >
-            <UserPlus size={14} />
-            Add Employee
-          </Link>
+          canWrite ? (
+            <Link
+              href="/dashboard/employees/new"
+              className="inline-flex items-center gap-2 bg-primary text-white px-3.5 py-2 rounded-lg text-[13px] font-medium hover:bg-primary-hover transition-colors"
+            >
+              <UserPlus size={14} />
+              Add Employee
+            </Link>
+          ) : undefined
         }
       />
 
@@ -135,9 +140,9 @@ export default function EmployeesPage() {
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
                       <Link href={`/dashboard/employees/${emp.id}`} className="text-primary hover:underline">
-                        Edit
+                        {canWrite ? 'Edit' : 'View'}
                       </Link>
-                      {emp.isActive && (
+                      {canWrite && emp.isActive && (
                         confirmId === emp.id ? (
                           <span className="flex items-center gap-2">
                             <span className="text-[12px] text-muted">Deactivate?</span>

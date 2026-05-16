@@ -3,6 +3,8 @@ import { useAuthStore } from '@/store/auth.store'
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
+export const API = '/api/v1'
+
 const api = axios.create({
   baseURL: BASE_URL,
   withCredentials: true,
@@ -51,7 +53,7 @@ api.interceptors.response.use(
       try {
         // Plain axios so this call doesn't re-enter the interceptor
         const refreshResponse = await axios.post(
-          `${BASE_URL}/api/auth/refresh`,
+          `${BASE_URL}/api/v1/auth/refresh`,
           {},
           { withCredentials: true }
         )

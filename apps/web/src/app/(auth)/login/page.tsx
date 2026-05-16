@@ -27,7 +27,7 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      const res = await api.post('/api/auth/login', form)
+      const res = await api.post('/api/v1/auth/login', form)
       const { accessToken, user } = res.data.data
       setAuth(user, accessToken)
       router.push('/dashboard')
@@ -72,12 +72,17 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      <p className="text-center text-sm text-muted mt-6">
-        No account?{' '}
-        <Link href="/register" className="text-primary hover:underline font-medium">
-          Register your company
+      <div className="flex items-center justify-between mt-6">
+        <p className="text-sm text-muted">
+          No account?{' '}
+          <Link href="/register" className="text-primary hover:underline font-medium">
+            Register
+          </Link>
+        </p>
+        <Link href="/forgot-password" className="text-sm text-muted hover:text-primary transition-colors">
+          Forgot password?
         </Link>
-      </p>
+      </div>
     </Card>
   )
 }

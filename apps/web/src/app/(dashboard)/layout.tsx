@@ -20,7 +20,7 @@ const NAV_LINKS = [
   { href: '/dashboard/employees', label: 'Employees', icon: Users },
   { href: '/dashboard/expenses', label: 'Expenses', icon: Receipt },
   { href: '/dashboard/inventory', label: 'Inventory', icon: Package },
-  { href: '/dashboard/ai', label: 'AI Assistant', icon: Sparkles },
+  { href: '/dashboard/ai-assistant', label: 'AI Assistant', icon: Sparkles },
 ]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -30,7 +30,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   async function handleLogout() {
     try {
-      await api.post('/api/auth/logout')
+      await api.post('/api/v1/auth/logout')
     } finally {
       logout()
       router.push('/login')
@@ -48,7 +48,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <aside className="w-60 bg-sidebar flex flex-col shrink-0">
 
         {/* Brand */}
-        <div className="px-5 h-14 flex items-center gap-2.5 border-b border-white/[0.06]">
+        <div className="px-5 h-14 flex items-center gap-2.5 border-b border-white/6">
           <div className="w-6 h-6 bg-primary rounded-md flex items-center justify-center shrink-0">
             <Layers size={12} className="text-white" strokeWidth={2} />
           </div>
@@ -85,7 +85,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </nav>
 
         {/* User */}
-        <div className="px-4 py-3 border-t border-white/[0.06]">
+        <div className="px-4 py-3 border-t border-white/6">
           {user && (
             <div className="mb-2 px-1">
               <p className="text-[13px] font-medium text-white truncate">

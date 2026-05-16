@@ -41,7 +41,7 @@ export default function RegisterPage() {
     setError('')
     setLoading(true)
     try {
-      await api.post('/api/auth/register', form)
+      await api.post('/api/v1/auth/register', form)
       setSuccess('Company registered! Check your email to verify your account, then log in.')
     } catch (err: unknown) {
       const message =

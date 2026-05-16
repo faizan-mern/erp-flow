@@ -42,25 +42,50 @@ export async function fetchEmployees(params?: {
   department?: string
   isActive?: string
 }): Promise<EmployeeListResponse> {
-  const res = await api.get('/api/employees', { params })
+  const res = await api.get('/api/v1/employees', { params })
   return res.data.data
 }
 
 export async function fetchEmployee(id: string): Promise<Employee> {
-  const res = await api.get(`/api/employees/${id}`)
+  const res = await api.get(`/api/v1/employees/${id}`)
   return res.data.data
 }
 
 export async function createEmployee(data: CreateEmployeeData): Promise<Employee> {
-  const res = await api.post('/api/employees', data)
+  const res = await api.post('/api/v1/employees', data)
   return res.data.data
 }
 
 export async function updateEmployee(id: string, data: Partial<CreateEmployeeData>): Promise<Employee> {
-  const res = await api.put(`/api/employees/${id}`, data)
+  const res = await api.put(`/api/v1/employees/${id}`, data)
   return res.data.data
 }
 
 export async function deactivateEmployee(id: string): Promise<void> {
-  await api.delete(`/api/employees/${id}`)
+  await api.delete(`/api/v1/employees/${id}`)
+}
+
+export interface AttendanceRecord {
+  id: string
+  employeeId: string
+  date: string
+  checkIn: string | null
+  checkOut: string | null
+  status: string
+  notes?: string
+}
+
+export async function fetchAttendance(employeeId: string): Promise<AttendanceRecord[]> {
+  const res = await api.get(`/api/v1/employees/${employeeId}/attendance`)
+  return res.data.data
+}
+
+export async function checkIn(employeeId: string): Promise<AttendanceRecord> {
+  const res = await api.post('/api/v1/employees/attendance/checkin', { employeeId })
+  return res.data.data
+}
+
+export async function checkOut(employeeId: string): Promise<AttendanceRecord> {
+  const res = await api.post('/api/v1/employees/attendance/checkout', { employeeId })
+  return res.data.data
 }

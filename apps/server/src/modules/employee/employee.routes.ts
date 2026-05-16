@@ -1,26 +1,26 @@
-import { Router } from 'express'
+import { Router, RequestHandler } from 'express'
 import { authenticate } from '../../middleware/auth.middleware'
 import { requireRole } from '../../middleware/role.middleware'
 import * as controller from './employee.controller'
 
 const router = Router()
 
-// All employee routes require a valid JWT
+// Casting controllers to RequestHandler is required because our controllers use
+// AuthRequest (a narrower type than Request). The authenticate middleware ensures
+// req.user is always set before any of these handlers run.
+const h = (fn: Function) => fn as RequestHandler
+
 router.use(authenticate)
 
-// ─── EMPLOYEE CRUD ───────────────────────────────────────────────────────────
-// Any authenticated user can view employees
-router.get('/', controller.list)
-router.get('/:id', controller.getOne)
-router.get('/:id/attendance', controller.getAttendance)
+router.get('/', h(controller.list))
+router.get('/:id', h(controller.getOne))
+router.get('/:id/attendance', h(controller.getAttendance))
 
-// Only admins and managers can create, update, or deactivate
-router.post('/', requireRole('COMPANY_ADMIN', 'MANAGER'), controller.create)
-router.put('/:id', requireRole('COMPANY_ADMIN', 'MANAGER'), controller.update)
-router.delete('/:id', requireRole('COMPANY_ADMIN'), controller.deactivate)
+router.post('/', requireRole('COMPANY_ADMIN', 'MANAGER'), h(controller.create))
+router.put('/:id', requireRole('COMPANY_ADMIN', 'MANAGER'), h(controller.update))
+router.delete('/:id', requireRole('COMPANY_ADMIN'), h(controller.deactivate))
 
-// ─── ATTENDANCE ──────────────────────────────────────────────────────────────
-router.post('/attendance/checkin', controller.checkIn)
-router.post('/attendance/checkout', controller.checkOut)
+router.post('/attendance/checkin', h(controller.checkIn))
+router.post('/attendance/checkout', h(controller.checkOut))
 
 export default router

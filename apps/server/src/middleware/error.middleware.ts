@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import { ZodError } from 'zod'
 
-export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction): void {
+export function errorHandler(err: Error & { status?: number }, req: Request, res: Response, _next: NextFunction): void {
   console.error(`[ERROR] ${req.method} ${req.path}:`, err.message)
 
   if (err instanceof ZodError) {
@@ -13,8 +13,11 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
     return
   }
 
-  res.status(500).json({
+  const status = err.status ?? 500
+  res.status(status).json({
     success: false,
-    message: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
+    message: status === 500 && process.env.NODE_ENV === 'production'
+      ? 'Internal server error'
+      : err.message,
   })
 }

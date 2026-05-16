@@ -7,6 +7,7 @@ import {
   attendanceSchema,
 } from './employee.validator'
 import { sendSuccess } from '../../utils/response'
+import { logActivity } from '../../utils/activity'
 import { AuthRequest } from '../../types'
 
 export async function list(req: AuthRequest, res: Response, next: NextFunction) {
@@ -21,7 +22,7 @@ export async function list(req: AuthRequest, res: Response, next: NextFunction) 
 
 export async function getOne(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const employee = await service.getEmployee(req.params.id, req.user.companyId)
+    const employee = await service.getEmployee(req.params['id'] as string, req.user.companyId)
     sendSuccess(res, employee, 'Employee retrieved')
   } catch (err) {
     next(err)
@@ -32,6 +33,14 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
   try {
     const input = createEmployeeSchema.parse(req.body)
     const employee = await service.createEmployee(req.user.companyId, input)
+    logActivity({
+      companyId: req.user.companyId,
+      userId: req.user.userId,
+      action: 'CREATE',
+      resourceType: 'employee',
+      resourceId: employee.id,
+      details: { firstName: input.firstName, lastName: input.lastName },
+    })
     sendSuccess(res, employee, 'Employee created', 201)
   } catch (err) {
     next(err)
@@ -40,8 +49,17 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
 
 export async function update(req: AuthRequest, res: Response, next: NextFunction) {
   try {
+    const id = req.params['id'] as string
     const input = updateEmployeeSchema.parse(req.body)
-    const employee = await service.updateEmployee(req.params.id, req.user.companyId, input)
+    const employee = await service.updateEmployee(id, req.user.companyId, input)
+    logActivity({
+      companyId: req.user.companyId,
+      userId: req.user.userId,
+      action: 'UPDATE',
+      resourceType: 'employee',
+      resourceId: id,
+      details: input as Record<string, string | number | boolean | null>,
+    })
     sendSuccess(res, employee, 'Employee updated')
   } catch (err) {
     next(err)
@@ -50,7 +68,15 @@ export async function update(req: AuthRequest, res: Response, next: NextFunction
 
 export async function deactivate(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    await service.deactivateEmployee(req.params.id, req.user.companyId)
+    const id = req.params['id'] as string
+    await service.deactivateEmployee(id, req.user.companyId)
+    logActivity({
+      companyId: req.user.companyId,
+      userId: req.user.userId,
+      action: 'DELETE',
+      resourceType: 'employee',
+      resourceId: id,
+    })
     sendSuccess(res, null, 'Employee deactivated')
   } catch (err) {
     next(err)
@@ -79,7 +105,7 @@ export async function checkOut(req: AuthRequest, res: Response, next: NextFuncti
 
 export async function getAttendance(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const records = await service.getAttendance(req.params.id, req.user.companyId)
+    const records = await service.getAttendance(req.params['id'] as string, req.user.companyId)
     sendSuccess(res, records, 'Attendance retrieved')
   } catch (err) {
     next(err)

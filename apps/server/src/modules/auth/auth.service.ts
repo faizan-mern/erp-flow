@@ -5,9 +5,13 @@ import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../uti
 import { sendVerificationEmail, sendPasswordResetEmail } from '../../utils/email'
 import { RegisterInput, LoginInput } from './auth.validator'
 
+function fail(message: string, status: number): never {
+  throw Object.assign(new Error(message), { status })
+}
+
 export async function register(input: RegisterInput) {
   const existingCompany = await repo.findCompanyBySlug(input.companySlug)
-  if (existingCompany) throw new Error('Company slug already taken')
+  if (existingCompany) fail('Company slug already taken', 409)
 
   const passwordHash = await bcrypt.hash(input.password, 12)
   const verifyToken = crypto.randomBytes(32).toString('hex')
@@ -23,7 +27,6 @@ export async function register(input: RegisterInput) {
   })
 
   await sendVerificationEmail(user.email, verifyToken).catch(() => {
-    // Email failure shouldn't break registration — user can request resend
     console.warn('Verification email failed to send for:', user.email)
   })
 
@@ -32,15 +35,15 @@ export async function register(input: RegisterInput) {
 
 export async function login(input: LoginInput, deviceInfo?: string) {
   const company = await repo.findCompanyBySlug(input.companySlug)
-  if (!company) throw new Error('Company not found')
+  if (!company) fail('Company not found', 404)
 
   const user = await repo.findUserByEmail(input.email, company.id)
-  if (!user) throw new Error('Invalid email or password')
+  if (!user) fail('Invalid email or password', 401)
 
   const passwordMatch = await bcrypt.compare(input.password, user.passwordHash)
-  if (!passwordMatch) throw new Error('Invalid email or password')
+  if (!passwordMatch) fail('Invalid email or password', 401)
 
-  if (!user.isVerified) throw new Error('Please verify your email before logging in')
+  if (!user.isVerified) fail('Please verify your email before logging in', 403)
 
   const payload = { userId: user.id, companyId: company.id, role: user.role, email: user.email }
   const accessToken = signAccessToken(payload)
@@ -66,7 +69,7 @@ export async function refresh(rawRefreshToken: string) {
   // Then check it exists in DB (it may have been revoked via logout)
   const tokenHash = crypto.createHash('sha256').update(rawRefreshToken).digest('hex')
   const stored = await repo.findRefreshToken(tokenHash)
-  if (!stored || stored.expiresAt < new Date()) throw new Error('Refresh token invalid or expired')
+  if (!stored || stored.expiresAt < new Date()) fail('Refresh token invalid or expired', 401)
 
   // Rotate: delete old token, issue new pair
   await repo.deleteRefreshToken(tokenHash)
@@ -89,7 +92,7 @@ export async function logout(rawRefreshToken: string) {
 
 export async function verifyEmail(token: string) {
   const result = await repo.verifyUserEmail(token)
-  if (result.count === 0) throw new Error('Invalid or already used verification token')
+  if (result.count === 0) fail('Invalid or already used verification token', 400)
 }
 
 export async function forgotPassword(email: string, companySlug: string) {
@@ -107,7 +110,7 @@ export async function forgotPassword(email: string, companySlug: string) {
 
 export async function resetPassword(token: string, newPassword: string) {
   const user = await repo.findUserByResetToken(token)
-  if (!user) throw new Error('Invalid or expired reset token')
+  if (!user) fail('Invalid or expired reset token', 400)
 
   const passwordHash = await bcrypt.hash(newPassword, 12)
   await repo.updatePassword(user.id, passwordHash)

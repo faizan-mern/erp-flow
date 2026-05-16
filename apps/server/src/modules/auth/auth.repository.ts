@@ -1,6 +1,18 @@
 import { prisma } from '../../prisma/client'
 import { Role } from '@prisma/client'
 
+// Default expense categories seeded for every new company. The AI categorizer
+// is constrained to pick a name from this list, so keep it short and broad.
+const DEFAULT_EXPENSE_CATEGORIES = [
+  { name: 'Travel',    color: '#0ea5e9' },
+  { name: 'Meals',     color: '#f59e0b' },
+  { name: 'Office',    color: '#64748b' },
+  { name: 'Software',  color: '#8b5cf6' },
+  { name: 'Marketing', color: '#ec4899' },
+  { name: 'Utilities', color: '#10b981' },
+  { name: 'Other',     color: '#94a3b8' },
+]
+
 export async function findCompanyBySlug(slug: string) {
   return prisma.company.findUnique({ where: { slug } })
 }
@@ -36,6 +48,9 @@ export async function createCompanyAndAdmin(data: {
         firstName: data.firstName,
         lastName: data.lastName,
       },
+    })
+    await tx.expenseCategory.createMany({
+      data: DEFAULT_EXPENSE_CATEGORIES.map((c) => ({ ...c, companyId: company.id })),
     })
     return { company, user, employee }
   })

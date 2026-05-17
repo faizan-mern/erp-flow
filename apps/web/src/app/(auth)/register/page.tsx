@@ -8,6 +8,7 @@ import api from '@/lib/api'
 import { Card } from '@/components/ui/card'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Button } from '@/components/ui/button'
 
 export default function RegisterPage() {
@@ -98,7 +99,7 @@ export default function RegisterPage() {
         </Field>
 
         <Field label="Password">
-          <Input name="password" type="password" value={form.password} onChange={handleChange} required />
+          <PasswordInput name="password" value={form.password} onChange={handleChange} required />
         </Field>
 
         {error && (

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// Renamed from `middleware.ts` in Next 16: the new term is `proxy`.
+// The exported function must be called `proxy` (not `middleware`).
+// Runtime behavior + matcher config are unchanged from the old middleware API.
+
 const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email']
 const PROTECTED_PREFIX = '/dashboard'
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   const hasSession = req.cookies.has('refreshToken')

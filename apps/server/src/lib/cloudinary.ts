@@ -7,6 +7,16 @@ cloudinary.config({
   secure: true,
 })
 
+
+
+export function isCloudinaryConfigured(): boolean {
+  return Boolean(
+    process.env.CLOUDINARY_CLOUD_NAME &&
+    process.env.CLOUDINARY_API_KEY &&
+    process.env.CLOUDINARY_API_SECRET
+  )
+}
+
 // Uploads a buffer (PDF or image) to Cloudinary and returns the public URL.
 // resource_type 'auto' lets Cloudinary handle both PDFs and images.
 export function uploadInvoice(buffer: Buffer, originalName: string): Promise<string> {

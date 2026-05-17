@@ -7,7 +7,7 @@ import { CheckCircle, Loader } from 'lucide-react'
 import api from '@/lib/api'
 import { Card } from '@/components/ui/card'
 import { Field } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Button } from '@/components/ui/button'
 
 // useSearchParams() must live inside a Suspense boundary for Next 15+ prerender.
@@ -92,9 +92,8 @@ function ResetPasswordContent() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <Field label="New Password">
-          <Input
+          <PasswordInput
             name="password"
-            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="At least 8 characters"
@@ -103,9 +102,8 @@ function ResetPasswordContent() {
         </Field>
 
         <Field label="Confirm Password">
-          <Input
+          <PasswordInput
             name="confirm"
-            type="password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             placeholder="Repeat your new password"

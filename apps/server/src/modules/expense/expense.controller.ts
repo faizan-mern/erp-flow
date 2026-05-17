@@ -9,7 +9,7 @@ import {
 } from './expense.validator'
 import { sendSuccess } from '../../utils/response'
 import { logActivity } from '../../utils/activity'
-import { uploadInvoice } from '../../lib/cloudinary'
+import { uploadInvoice, isCloudinaryConfigured } from '../../lib/cloudinary'
 import { AuthRequest } from '../../types'
 
 // Resolves the caller's employeeId (or null if no Employee row is linked).
@@ -145,8 +145,33 @@ export async function categories(req: AuthRequest, res: Response, next: NextFunc
 export async function uploadInvoiceFile(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const file = (req as AuthRequest & { file?: Express.Multer.File }).file
-    if (!file) throw Object.assign(new Error('No file uploaded (field name must be "file")'), { status: 400 })
-    const url = await uploadInvoice(file.buffer, file.originalname)
-    sendSuccess(res, { url }, 'Invoice uploaded')
+    if (!file) {
+      throw Object.assign(new Error('No file selected. Please choose a PDF or image up to 10 MB.'), { status: 400 })
+    }
+
+    // Friendly error when Cloudinary env vars are missing (common in local/dev).
+    // Surface as 503 so the UI can show a "service unavailable" message rather than a vague 500.
+    if (!isCloudinaryConfigured()) {
+      throw Object.assign(
+        new Error('Invoice upload is not configured on the server. Please add Cloudinary credentials or skip the invoice.'),
+        { status: 503 }
+      )
+    }
+
+    try {
+      const url = await uploadInvoice(file.buffer, file.originalname)
+      sendSuccess(res, { url }, 'Invoice uploaded')
+    } catch (uploadErr) {
+      console.error('[cloudinary] upload failed:', uploadErr)
+      // In dev, surface the real Cloudinary error inline so you can debug from
+      // the Network tab without scrolling the server terminal. Production still
+      // returns just the friendly message to avoid leaking credentials/internals.
+      const friendly = 'Could not upload your invoice. Please try again, or submit the expense without an invoice.'
+      const detail = (uploadErr as { message?: string })?.message ?? String(uploadErr)
+      const message = process.env.NODE_ENV === 'production'
+        ? friendly
+        : `${friendly} [dev cause: ${detail}]`
+      throw Object.assign(new Error(message), { status: 502 })
+    }
   } catch (err) { next(err) }
 }

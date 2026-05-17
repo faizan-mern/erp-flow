@@ -20,7 +20,14 @@ app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:3000',
   credentials: true,
 }))
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100, standardHeaders: true }))
+// Dev gets a much higher cap because hot reload + module-switching exhausts a
+// 100-req/15min budget very quickly while clicking around. Production keeps the
+// strict 100 to slow down brute-force attempts.
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000,
+  standardHeaders: true,
+}))
 app.use(morgan('dev'))
 app.use(cookieParser())
 app.use(express.json())

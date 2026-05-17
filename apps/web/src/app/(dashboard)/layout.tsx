@@ -22,12 +22,16 @@ type NavLink = {
   href: string
   label: string
   icon: typeof LayoutDashboard
+  // Hide for callers whose role isn't COMPANY_ADMIN
   adminOnly?: boolean
+  // Hide for callers whose role is EMPLOYEE
+  hideForEmployee?: boolean
 }
 
 const NAV_LINKS: NavLink[] = [
   { href: '/dashboard',              label: 'Dashboard',    icon: LayoutDashboard },
-  { href: '/dashboard/employees',    label: 'Employees',    icon: Users },
+  // Employee directory is admin/manager-only — regular employees shouldn't browse colleagues' records.
+  { href: '/dashboard/employees',    label: 'Employees',    icon: Users, hideForEmployee: true },
   { href: '/dashboard/team',         label: 'Team',         icon: UserCog, adminOnly: true },
   { href: '/dashboard/attendance',   label: 'Attendance',   icon: Clock },
   { href: '/dashboard/expenses',     label: 'Expenses',     icon: Receipt },
@@ -49,7 +53,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }
 
-  const visibleLinks = NAV_LINKS.filter((l) => !l.adminOnly || user?.role === 'COMPANY_ADMIN')
+  const visibleLinks = NAV_LINKS.filter((l) => {
+    if (l.adminOnly && user?.role !== 'COMPANY_ADMIN') return false
+    if (l.hideForEmployee && user?.role === 'EMPLOYEE') return false
+    return true
+  })
 
   const pageLabel = pathname === '/dashboard'
     ? 'Dashboard'

@@ -34,10 +34,17 @@ export default function ExpenseAnalyticsPage() {
   const [year,  setYear]  = useState(currentYear)
   const [month, setMonth] = useState(currentMonth)
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['expense-analytics', year, month],
     queryFn: () => fetchMonthlyAnalytics(year, month),
+    retry: false, // a 403 isn't going to start succeeding on retry — fail fast
   })
+
+  // The analytics endpoint is restricted to COMPANY_ADMIN + MANAGER.
+  // When an EMPLOYEE somehow lands here, the API returns 403 — surface
+  // that as a clear "no permission" message rather than a generic failure.
+  const errStatus = (error as { response?: { status?: number } } | null)?.response?.status
+  const isForbidden = isError && errStatus === 403
 
   // Derive summary stats from byStatus
   const totalAmount    = data?.byStatus.reduce((sum, s) => sum + Number(s.total), 0) ?? 0
@@ -107,8 +114,19 @@ export default function ExpenseAnalyticsPage() {
         {isLoading && (
           <div className="p-12 text-center text-[13px] text-muted">Loading analytics...</div>
         )}
-        {isError && (
-          <div className="p-12 text-center text-[13px] text-danger">Failed to load analytics.</div>
+        {isForbidden && (
+          <Card className="p-10 text-center">
+            <p className="text-[14px] font-semibold text-strong mb-1">No access to analytics</p>
+            <p className="text-[13px] text-muted max-w-md mx-auto">
+              Expense analytics is restricted to Company Admins and Managers. Ask an admin
+              to upgrade your role if you need this view.
+            </p>
+          </Card>
+        )}
+        {isError && !isForbidden && (
+          <div className="p-12 text-center text-[13px] text-danger">
+            Failed to load analytics. Check that the backend is running, then refresh.
+          </div>
         )}
 
         {data && (

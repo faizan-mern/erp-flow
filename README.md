@@ -132,6 +132,9 @@ server/src/modules/<feature>/
 ### Module Priority (as clarified by Cyberify)
 Employee → Expense → Inventory
 
+### Roles
+Three roles per company: `COMPANY_ADMIN`, `MANAGER`, `EMPLOYEE`. See [docs/ROLES.md](docs/ROLES.md) for the exact permissions and how they are enforced on backend + frontend.
+
 ### Real-Time Priority
 Live notifications → inventory updates → dashboard sync → activity tracking → team messaging
 

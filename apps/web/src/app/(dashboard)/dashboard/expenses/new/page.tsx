@@ -83,8 +83,14 @@ export default function NewExpensePage() {
     try {
       const url = await uploadInvoice(file)
       setInvoiceUrl(url)
-    } catch {
-      setUploadError('Upload failed. Please try again.')
+    } catch (err: unknown) {
+      // Prefer the server's friendly message (e.g. "Invoice upload is not configured" / "File too large").
+      // Fall back to a generic string for network failures with no response body.
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Could not upload your file. Please try again, or submit the expense without an invoice.'
+      setUploadError(message)
+      if (fileRef.current) fileRef.current.value = ''
     } finally {
       setIsUploading(false)
     }

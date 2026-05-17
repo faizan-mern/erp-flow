@@ -101,13 +101,18 @@ export default function ExpensesPage() {
         subtitle={data ? `${data.total} total` : ''}
         action={
           <div className="flex items-center gap-2">
-            <Link
-              href="/dashboard/expenses/analytics"
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-[13px] font-medium border border-border bg-surface hover:bg-canvas transition-colors text-muted"
-            >
-              <BarChart2 size={14} />
-              Analytics
-            </Link>
+            {/* Analytics is restricted to COMPANY_ADMIN + MANAGER on the backend,
+                so hide the link entirely for EMPLOYEE to avoid showing a button
+                that always 403s. `canApprove` is already the admin/manager guard. */}
+            {canApprove && (
+              <Link
+                href="/dashboard/expenses/analytics"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-[13px] font-medium border border-border bg-surface hover:bg-canvas transition-colors text-muted"
+              >
+                <BarChart2 size={14} />
+                Analytics
+              </Link>
+            )}
             <Link
               href="/dashboard/expenses/new"
               className="inline-flex items-center gap-2 bg-primary text-white px-3.5 py-2 rounded-lg text-[13px] font-medium hover:bg-primary-hover transition-colors"

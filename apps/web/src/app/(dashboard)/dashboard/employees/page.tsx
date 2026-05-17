@@ -10,6 +10,7 @@ import { PageTransition } from '@/components/ui/page-transition'
 import { Badge } from '@/components/ui/badge'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
+import { TableSkeleton } from '@/components/ui/skeleton'
 
 export default function EmployeesPage() {
   const queryClient = useQueryClient()
@@ -85,10 +86,10 @@ export default function EmployeesPage() {
       {/* Table */}
       <div className="bg-surface rounded-xl border border-border overflow-hidden">
         {isLoading && (
-          <div className="p-12 text-center text-[13px] text-muted">Loading...</div>
+          <TableSkeleton headers={['Name', 'Department', 'Position', 'Status', 'Actions']} />
         )}
 
-        {isError && (
+        {!isLoading && isError && (
           <div className="p-12 text-center text-[13px] text-danger">
             Failed to load employees.
           </div>

@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Layers,
 } from 'lucide-react'
+import { ToastContainer } from '@/components/ui/toast'
 
 type NavLink = {
   href: string
@@ -140,6 +141,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </main>
       </div>
 
+      <ToastContainer />
     </div>
   )
 }

@@ -82,10 +82,7 @@ export async function updateUser(id: string, companyId: string, data: UpdateUser
   await prisma.user.updateMany({
     where: { id, companyId },
     data: {
-      ...(data.role     !== undefined && { role: data.role }),
-      ...(data.isActive !== undefined && {
-        employee: undefined, // not editing employee here — clarity only
-      }),
+      ...(data.role !== undefined && { role: data.role }),
     },
   })
   return findUserById(id, companyId)

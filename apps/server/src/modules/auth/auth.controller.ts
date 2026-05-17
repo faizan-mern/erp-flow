@@ -4,11 +4,16 @@ import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema 
 import { sendSuccess, sendError } from '../../utils/response'
 import { AuthRequest } from '../../types'
 
+// In production the frontend (Vercel) and backend (Railway) live on different
+// origins, so the refresh-token cookie must be sameSite=none + secure to be sent
+// on cross-site requests. Locally we use 'strict' since both run on localhost.
+const isProd = process.env.NODE_ENV === 'production'
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict' as const,
+  secure: isProd,
+  sameSite: (isProd ? 'none' : 'strict') as 'none' | 'strict',
   maxAge: 7 * 24 * 60 * 60 * 1000,
+  path: '/',
 }
 
 export async function register(req: Request, res: Response, next: NextFunction) {

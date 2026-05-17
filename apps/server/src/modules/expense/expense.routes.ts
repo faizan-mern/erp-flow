@@ -8,10 +8,10 @@ const router = Router()
 const h = (fn: Function) => fn as RequestHandler
 
 // Multer: keep file in memory (we forward it straight to Cloudinary as a buffer).
-// 5 MB cap — enough for a typical PDF invoice or photo.
+// 10 MB cap — matches the UI copy on the submit-expense form.
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 },
 })
 
 router.use(authenticate)

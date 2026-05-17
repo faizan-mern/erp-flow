@@ -72,7 +72,9 @@ export async function createExpense(
 }
 
 export async function updateExpense(id: string, companyId: string, data: UpdateExpenseInput) {
-  return prisma.expense.update({
+  // updateMany so companyId is enforced in the WHERE clause — defense in depth
+  // even though the service layer pre-checks ownership.
+  await prisma.expense.updateMany({
     where: { id, companyId },
     data: {
       ...(data.title       !== undefined && { title: data.title }),
@@ -82,8 +84,8 @@ export async function updateExpense(id: string, companyId: string, data: UpdateE
       ...(data.notes       !== undefined && { notes: data.notes }),
       ...(data.invoiceUrl  !== undefined && { invoiceUrl: data.invoiceUrl }),
     },
-    include: EXPENSE_INCLUDE,
   })
+  return findExpenseById(id, companyId)
 }
 
 export async function updateStatus(
@@ -92,20 +94,20 @@ export async function updateStatus(
   status: ExpenseStatus,
   approvedById: string
 ) {
-  return prisma.expense.update({
+  await prisma.expense.updateMany({
     where: { id, companyId },
     data: {
       status,
       approvedById,
       approvedAt: new Date(),
     },
-    include: EXPENSE_INCLUDE,
   })
+  return findExpenseById(id, companyId)
 }
 
 // Used by the async AI categorizer — never blocks the main submit response.
 export async function updateCategory(id: string, companyId: string, categoryId: string) {
-  return prisma.expense.update({
+  await prisma.expense.updateMany({
     where: { id, companyId },
     data: { categoryId },
   })

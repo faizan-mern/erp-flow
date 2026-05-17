@@ -16,6 +16,9 @@ export async function invite(req: AuthRequest, res: Response, next: NextFunction
   try {
     const input = inviteUserSchema.parse(req.body)
     const user = await service.inviteUser(req.user.companyId, input)
+    // service returns the row via findUserById after the txn — should never be null,
+    // but narrow for the type system and as a defensive guard.
+    if (!user) throw Object.assign(new Error('Failed to create user'), { status: 500 })
     logActivity({
       companyId: req.user.companyId,
       userId: req.user.userId,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle, XCircle, Loader } from 'lucide-react'
@@ -9,19 +9,36 @@ import { Card } from '@/components/ui/card'
 
 type Status = 'loading' | 'success' | 'error'
 
+// Next 15+ requires useSearchParams() to live inside a Suspense boundary so the
+// prerender step can bail out to client-rendering for this page.
 export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<VerifyEmailFallback />}>
+      <VerifyEmailContent />
+    </Suspense>
+  )
+}
+
+function VerifyEmailFallback() {
+  return (
+    <Card className="w-full max-w-md p-8 shadow-sm text-center">
+      <Loader size={32} className="mx-auto text-primary animate-spin mb-4" />
+      <p className="text-[14px] text-muted">Loading...</p>
+    </Card>
+  )
+}
+
+function VerifyEmailContent() {
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
-  const [status, setStatus] = useState<Status>('loading')
-  const [message, setMessage] = useState('')
+  // Initial state derived from token presence — avoids setState-in-effect for the no-token case.
+  const [status, setStatus] = useState<Status>(() => (token ? 'loading' : 'error'))
+  const [message, setMessage] = useState(() =>
+    token ? '' : 'No verification token found in the link.'
+  )
 
   useEffect(() => {
-    if (!token) {
-      setStatus('error')
-      setMessage('No verification token found in the link.')
-      return
-    }
-
+    if (!token) return
     api.get(`/api/v1/auth/verify-email/${token}`)
       .then(() => setStatus('success'))
       .catch((err) => {

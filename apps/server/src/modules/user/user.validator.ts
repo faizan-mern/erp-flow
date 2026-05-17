@@ -11,11 +11,11 @@ export const inviteUserSchema = z.object({
   role:      z.enum(['MANAGER', 'EMPLOYEE']),
 })
 
-// PATCH lets an admin change role (including to COMPANY_ADMIN) or active state.
+// PATCH lets an admin change role (including to COMPANY_ADMIN).
 // SUPER_ADMIN is still excluded — that's a platform-level role, not a tenant one.
+// Note: user deactivation is not implemented yet — add when there's a UI for it.
 export const updateUserSchema = z.object({
-  role:     z.enum(['COMPANY_ADMIN', 'MANAGER', 'EMPLOYEE']).optional(),
-  isActive: z.boolean().optional(),
+  role: z.enum(['COMPANY_ADMIN', 'MANAGER', 'EMPLOYEE']).optional(),
 })
 
 export type InviteUserInput = z.infer<typeof inviteUserSchema>

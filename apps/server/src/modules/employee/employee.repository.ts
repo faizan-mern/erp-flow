@@ -64,8 +64,10 @@ export async function createEmployee(companyId: string, data: CreateEmployeeInpu
 }
 
 export async function updateEmployee(id: string, companyId: string, data: UpdateEmployeeInput) {
-  return prisma.employee.update({
-    where: { id },
+  // updateMany so companyId is part of the WHERE — prevents cross-tenant writes
+  // even if a service layer ever forgets to pre-check ownership.
+  await prisma.employee.updateMany({
+    where: { id, companyId },
     data: {
       ...(data.firstName && { firstName: data.firstName }),
       ...(data.lastName && { lastName: data.lastName }),
@@ -77,13 +79,15 @@ export async function updateEmployee(id: string, companyId: string, data: Update
       ...(data.address !== undefined && { address: data.address }),
     },
   })
+  return findEmployeeById(id, companyId)
 }
 
 export async function deactivateEmployee(id: string, companyId: string) {
-  return prisma.employee.update({
-    where: { id },
+  await prisma.employee.updateMany({
+    where: { id, companyId },
     data: { isActive: false },
   })
+  return findEmployeeById(id, companyId)
 }
 
 // ─── ATTENDANCE ──────────────────────────────────────────────────────────────

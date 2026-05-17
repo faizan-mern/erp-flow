@@ -22,7 +22,19 @@ export async function list(req: AuthRequest, res: Response, next: NextFunction) 
 
 export async function getOne(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const employee = await service.getEmployee(req.params['id'] as string, req.user.companyId)
+    const targetId = req.params['id'] as string
+
+    // EMPLOYEEs can only view their own record (which still leaks salary —
+    // intentional, since it's their own salary). Admins and managers can view
+    // anyone in their company.
+    if (req.user.role === 'EMPLOYEE') {
+      const ownEmployeeId = await service.resolveCallerEmployeeId(req.user.userId, req.user.companyId)
+      if (ownEmployeeId !== targetId) {
+        throw Object.assign(new Error('Forbidden — employees can only view their own record'), { status: 403 })
+      }
+    }
+
+    const employee = await service.getEmployee(targetId, req.user.companyId)
     sendSuccess(res, employee, 'Employee retrieved')
   } catch (err) {
     next(err)

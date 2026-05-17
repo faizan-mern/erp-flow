@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { Search, UserPlus } from 'lucide-react'
@@ -13,9 +14,19 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { TableSkeleton } from '@/components/ui/skeleton'
 
 export default function EmployeesPage() {
+  const router = useRouter()
   const queryClient = useQueryClient()
   const { user } = useAuthStore()
   const canWrite = user?.role === 'COMPANY_ADMIN' || user?.role === 'MANAGER'
+
+  // The sidebar hides this link for EMPLOYEE, but the URL is still typeable.
+  // Backend now 403s for EMPLOYEE on GET /employees too — this redirect avoids
+  // showing the failed-load error UI for users who got here by URL.
+  useEffect(() => {
+    if (user?.role === 'EMPLOYEE') {
+      router.replace('/dashboard/profile')
+    }
+  }, [user?.role, router])
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [page, setPage] = useState(1)

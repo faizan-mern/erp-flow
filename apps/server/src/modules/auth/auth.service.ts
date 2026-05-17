@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import * as repo from './auth.repository'
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../utils/jwt'
 import { sendVerificationEmail, sendPasswordResetEmail } from '../../utils/email'
+import { logActivity } from '../../utils/activity'
 import { RegisterInput, LoginInput } from './auth.validator'
 
 function fail(message: string, status: number): never {
@@ -30,6 +31,15 @@ export async function register(input: RegisterInput) {
     console.warn('Verification email failed to send for:', user.email)
   })
 
+  logActivity({
+    companyId: company.id,
+    userId: user.id,
+    action: 'REGISTER',
+    resourceType: 'company',
+    resourceId: company.id,
+    details: { email: user.email, slug: input.companySlug },
+  })
+
   return { companyId: company.id, userId: user.id, email: user.email }
 }
 
@@ -55,10 +65,27 @@ export async function login(input: LoginInput, deviceInfo?: string) {
   await repo.saveRefreshToken(user.id, tokenHash, expiresAt, deviceInfo)
   await repo.updateLastLogin(user.id)
 
+  logActivity({
+    companyId: company.id,
+    userId: user.id,
+    action: 'LOGIN',
+    resourceType: 'session',
+    resourceId: user.id,
+    details: deviceInfo ? { deviceInfo } : undefined,
+  })
+
   return {
     accessToken,
     refreshToken,
-    user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, companyName: company.name },
+    user: {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      companyName: company.name,
+      companySlug: company.slug,
+    },
   }
 }
 
@@ -87,7 +114,23 @@ export async function refresh(rawRefreshToken: string) {
 
 export async function logout(rawRefreshToken: string) {
   const tokenHash = crypto.createHash('sha256').update(rawRefreshToken).digest('hex')
+
+  // Look up the token's owner BEFORE deleting it so we can attribute the
+  // logout activity to the right user. We tolerate "token not found" silently
+  // because the controller will then just clear the cookie and be done.
+  const stored = await repo.findRefreshToken(tokenHash).catch(() => null)
+
   await repo.deleteRefreshToken(tokenHash)
+
+  if (stored?.user) {
+    logActivity({
+      companyId: stored.user.companyId,
+      userId: stored.user.id,
+      action: 'LOGOUT',
+      resourceType: 'session',
+      resourceId: stored.user.id,
+    })
+  }
 }
 
 export async function verifyEmail(token: string) {

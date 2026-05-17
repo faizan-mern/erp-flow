@@ -10,6 +10,7 @@ export interface AuthUser {
   lastName: string
   role: 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'MANAGER' | 'EMPLOYEE'
   companyName: string
+  companySlug: string
 }
 
 interface AuthState {

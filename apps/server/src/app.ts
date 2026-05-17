@@ -23,10 +23,12 @@ app.use(cors({
 // Dev gets a much higher cap because hot reload + module-switching exhausts a
 // 100-req/15min budget very quickly while clicking around. Production keeps the
 // strict 100 to slow down brute-force attempts.
+// /health is excluded so uptime probes don't consume the budget.
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
   max: process.env.NODE_ENV === 'production' ? 100 : 1000,
   standardHeaders: true,
+  skip: (req) => req.path === '/health',
 }))
 app.use(morgan('dev'))
 app.use(cookieParser())

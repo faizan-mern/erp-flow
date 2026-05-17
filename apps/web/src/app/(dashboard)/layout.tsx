@@ -78,6 +78,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <p className="text-[13px] font-semibold text-white tracking-tight truncate">
               {user?.companyName ?? 'ERPFlow'}
             </p>
+            {user?.companySlug && (
+              // Showing the slug here so users can recover it for re-login if
+              // they ever forget it — the login page requires companySlug.
+              <p className="text-[10px] text-slate-500 font-mono truncate">
+                {user.companySlug}
+              </p>
+            )}
           </div>
         </div>
 

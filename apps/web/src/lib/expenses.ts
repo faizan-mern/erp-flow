@@ -20,6 +20,7 @@ export interface Expense {
   status: ExpenseStatus
   approvedById: string | null
   approvedAt: string | null
+  rejectReason: string | null
   invoiceUrl: string | null
   notes: string | null
   expenseDate: string

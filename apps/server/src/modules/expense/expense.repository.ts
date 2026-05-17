@@ -92,7 +92,8 @@ export async function updateStatus(
   id: string,
   companyId: string,
   status: ExpenseStatus,
-  approvedById: string
+  approvedById: string,
+  rejectReason?: string,
 ) {
   await prisma.expense.updateMany({
     where: { id, companyId },
@@ -100,6 +101,9 @@ export async function updateStatus(
       status,
       approvedById,
       approvedAt: new Date(),
+      // Only set rejectReason when rejecting. Approvals clear it (in case an
+      // earlier rejection was reverted — currently impossible, but harmless).
+      rejectReason: status === 'REJECTED' ? rejectReason ?? null : null,
     },
   })
   return findExpenseById(id, companyId)

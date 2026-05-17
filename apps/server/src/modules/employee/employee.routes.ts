@@ -12,8 +12,12 @@ const h = (fn: Function) => fn as RequestHandler
 
 router.use(authenticate)
 
-router.get('/', h(controller.list))
+// /me must come before any role-gated routes so an EMPLOYEE can still resolve
+// their own profile. The directory listing is admin/manager-only because the
+// list response includes salaries across all rows. Per-id lookup is gated
+// inside the controller so that an EMPLOYEE can still read their own row.
 router.get('/me', h(controller.getMe))
+router.get('/', requireRole('COMPANY_ADMIN', 'MANAGER'), h(controller.list))
 router.get('/:id', h(controller.getOne))
 router.get('/:id/attendance', h(controller.getAttendance))
 

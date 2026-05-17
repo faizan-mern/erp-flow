@@ -135,7 +135,7 @@ export async function rejectExpense(
   companyId: string,
   approverId: string,
   approverEmployeeId: string | null,
-  _reason: string | undefined
+  reason: string | undefined,
 ) {
   const expense = await repo.findExpenseById(id, companyId)
   if (!expense) fail('Expense not found', 404)
@@ -145,9 +145,7 @@ export async function rejectExpense(
     fail('Forbidden — you cannot reject your own expense', 403)
   }
 
-  // Note: reason is logged via activityLog by the controller. The schema doesn't
-  // have a reject_reason column yet — add it when the UI actually surfaces it.
-  return repo.updateStatus(id, companyId, 'REJECTED', approverId)
+  return repo.updateStatus(id, companyId, 'REJECTED', approverId, reason)
 }
 
 // ─── ANALYTICS + CATEGORIES ─────────────────────────────────────────────────

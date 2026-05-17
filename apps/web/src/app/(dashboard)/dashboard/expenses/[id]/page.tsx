@@ -176,6 +176,20 @@ export default function ExpenseDetailPage() {
                     </div>
                   </>
                 )}
+
+                {expense.status === 'REJECTED' && expense.rejectReason && (
+                  <>
+                    <div className="border-t border-divider" />
+                    <div>
+                      <p className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-2">
+                        Rejection Reason
+                      </p>
+                      <p className="text-[13px] text-strong leading-relaxed bg-danger-soft border border-danger/20 rounded-lg px-3 py-2">
+                        {expense.rejectReason}
+                      </p>
+                    </div>
+                  </>
+                )}
               </Card>
 
               {/* Sidebar */}

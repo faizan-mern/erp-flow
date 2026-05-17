@@ -15,7 +15,13 @@ export default function LoginPage() {
   const router = useRouter()
   const { setAuth } = useAuthStore()
 
-  const [form, setForm] = useState({ email: '', password: '', companySlug: '' })
+  // Prefill companySlug with the last value the user successfully logged in with.
+  // localStorage gate is for SSR — `window` is undefined on the server pass.
+  const [form, setForm] = useState(() => ({
+    email: '',
+    password: '',
+    companySlug: typeof window !== 'undefined' ? localStorage.getItem('lastCompanySlug') ?? '' : '',
+  }))
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -31,6 +37,11 @@ export default function LoginPage() {
       const res = await api.post('/api/v1/auth/login', form)
       const { accessToken, user } = res.data.data
       setAuth(user, accessToken)
+      // Remember the slug so the next login attempt prefills it. We persist
+      // only on success so a typo-then-retry doesn't lock in the wrong slug.
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('lastCompanySlug', form.companySlug)
+      }
       router.push('/dashboard')
     } catch (err: unknown) {
       const message =

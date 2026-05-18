@@ -4,7 +4,7 @@ import { CreateExpenseInput, UpdateExpenseInput, ListExpensesQueryInput } from '
 
 const EXPENSE_INCLUDE = {
   category:   { select: { id: true, name: true, color: true } },
-  employee:   { select: { id: true, firstName: true, lastName: true } },
+  employee:   { select: { id: true, firstName: true, lastName: true, userId: true } },
   approvedBy: { select: { id: true, firstName: true, lastName: true } },
 } satisfies Prisma.ExpenseInclude
 

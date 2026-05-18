@@ -1,4 +1,5 @@
 import 'dotenv/config'
+import { createServer } from 'http'
 import express, { Router } from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
@@ -12,7 +13,10 @@ import expenseRoutes from './modules/expense/expense.routes'
 import userRoutes from './modules/user/user.routes'
 import productRoutes from './modules/product/product.routes'
 import aiRoutes from './modules/ai/ai.routes'
+import dashboardRoutes from './modules/dashboard/dashboard.routes'
+import notificationRoutes from './modules/notification/notification.routes'
 import { errorHandler } from './middleware/error.middleware'
+import { initSocket } from './lib/socket'
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -40,13 +44,18 @@ v1.use('/expenses', expenseRoutes)
 v1.use('/users', userRoutes)
 v1.use('/products', productRoutes)
 v1.use('/ai', aiRoutes)
+v1.use('/dashboard', dashboardRoutes)
+v1.use('/notifications', notificationRoutes)
 app.use('/api/v1', v1)
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
 
 app.use(errorHandler)
 
-app.listen(PORT, () => {
+const httpServer = createServer(app)
+initSocket(httpServer)
+
+httpServer.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
   console.log(`Environment: ${process.env.NODE_ENV}`)
 })

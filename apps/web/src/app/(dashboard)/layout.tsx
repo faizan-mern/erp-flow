@@ -18,6 +18,8 @@ import {
   Layers,
 } from 'lucide-react'
 import { ToastContainer } from '@/components/ui/toast'
+import { NotificationBell } from '@/components/ui/notification-bell'
+import { useSocket } from '@/hooks/use-socket'
 
 type NavLink = {
   href: string
@@ -45,6 +47,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter()
   const queryClient = useQueryClient()
   const { user, logout } = useAuthStore()
+  useSocket()
 
   async function handleLogout() {
     try {
@@ -150,9 +153,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <ChevronRight size={13} />
             <span className="text-strong font-medium">{pageLabel}</span>
           </div>
-          <span className="text-[11px] bg-primary-soft text-primary px-2 py-0.5 rounded-full font-medium">
-            {user?.role?.replace(/_/g, ' ')}
-          </span>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <span className="text-[11px] bg-primary-soft text-primary px-2 py-0.5 rounded-full font-medium">
+              {user?.role?.replace(/_/g, ' ')}
+            </span>
+          </div>
         </header>
 
         {/* Page content */}

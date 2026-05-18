@@ -2,6 +2,8 @@ import { ExpenseStatus, Role } from '@prisma/client'
 import * as repo from './expense.repository'
 import { categorizeExpense } from '../../lib/openrouter'
 import { CreateExpenseInput, UpdateExpenseInput, ListExpensesQueryInput } from './expense.validator'
+import * as notificationRepo from '../notification/notification.repository'
+import { getIO } from '../../lib/socket'
 
 function fail(message: string, status: number): never {
   throw Object.assign(new Error(message), { status })
@@ -150,7 +152,9 @@ export async function approveExpense(
     fail('Forbidden — you cannot approve your own expense', 403)
   }
 
-  return repo.updateStatus(id, companyId, 'APPROVED', approverId)
+  const updated = await repo.updateStatus(id, companyId, 'APPROVED', approverId)
+  if (updated) emitExpenseNotification(updated, 'APPROVED', companyId)
+  return updated
 }
 
 export async function rejectExpense(
@@ -168,7 +172,33 @@ export async function rejectExpense(
     fail('Forbidden — you cannot reject your own expense', 403)
   }
 
-  return repo.updateStatus(id, companyId, 'REJECTED', approverId, reason)
+  const updated = await repo.updateStatus(id, companyId, 'REJECTED', approverId, reason)
+  if (updated) emitExpenseNotification(updated, 'REJECTED', companyId)
+  return updated
+}
+
+function emitExpenseNotification(
+  expense: { id: string; title: string; employee: { userId: string | null } },
+  status: 'APPROVED' | 'REJECTED',
+  companyId: string,
+) {
+  const userId = expense.employee.userId
+  if (!userId) return
+
+  const title   = status === 'APPROVED' ? 'Expense Approved' : 'Expense Rejected'
+  const message = status === 'APPROVED'
+    ? `Your expense "${expense.title}" has been approved.`
+    : `Your expense "${expense.title}" has been rejected.`
+
+  notificationRepo.createNotification({ companyId, userId, type: 'expense_status', title, message, notifData: { expenseId: expense.id, status } })
+    .then((notif) => {
+      try {
+        const io = getIO()
+        io.to(`user:${userId}`).emit('notification:new', notif)
+        io.to(`company:${companyId}`).emit('dashboard:refresh')
+      } catch { /* socket may not be initialized in test contexts */ }
+    })
+    .catch((err) => console.warn('[socket] expense notification failed:', (err as Error).message))
 }
 
 // ─── ANALYTICS + CATEGORIES ─────────────────────────────────────────────────

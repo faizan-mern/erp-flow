@@ -2,6 +2,7 @@ import * as repo from './product.repository'
 import {
   CreateProductInput, UpdateProductInput, ListProductsQuery, RecordMovementInput,
 } from './product.validator'
+import { getIO } from '../../lib/socket'
 
 function fail(message: string, status: number): never {
   throw Object.assign(new Error(message), { status })
@@ -50,7 +51,13 @@ export async function recordMovement(
   performedById: string,
 ) {
   await getProduct(productId, companyId)
-  return repo.recordMovement(companyId, productId, input, performedById)
+  const result = await repo.recordMovement(companyId, productId, input, performedById)
+  try {
+    const io = getIO()
+    io.to(`company:${companyId}`).emit('inventory:updated', { productId, newQuantity: result.newQuantity })
+    io.to(`company:${companyId}`).emit('dashboard:refresh')
+  } catch { /* socket may not be initialized in test contexts */ }
+  return result
 }
 
 export async function listMovements(productId: string, companyId: string) {

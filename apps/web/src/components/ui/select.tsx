@@ -2,9 +2,6 @@ import { ChevronDown } from 'lucide-react'
 
 type SelectProps = React.SelectHTMLAttributes<HTMLSelectElement>
 
-// Token-aware select that mirrors Input styling so forms stay visually consistent.
-// `appearance-none` strips the native OS arrow; we draw our own with a Lucide
-// ChevronDown absolutely positioned on the right. `pr-8` makes room for it.
 export function Select({ className = '', children, ...props }: SelectProps) {
   return (
     <div className="relative w-full">

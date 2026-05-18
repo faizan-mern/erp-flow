@@ -10,7 +10,8 @@
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
-    "db:seed": "ts-node-dev prisma/seed.ts"
+    "db:seed": "ts-node-dev prisma/seed.ts",
+    "smoke": "ts-node-dev --transpile-only src/scripts/smoke-test.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

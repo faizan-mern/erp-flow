@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/auth.store'
 import api from '@/lib/api'
 import {
@@ -42,12 +43,16 @@ const NAV_LINKS: NavLink[] = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
+  const queryClient = useQueryClient()
   const { user, logout } = useAuthStore()
 
   async function handleLogout() {
     try {
       await api.post('/api/v1/auth/logout')
     } finally {
+      // Wipe TanStack Query cache so the next user doesn't briefly see the
+      // previous user's data (expenses/employees/etc) before refetch lands.
+      queryClient.clear()
       logout()
       router.push('/login')
     }

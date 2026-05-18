@@ -248,8 +248,11 @@ export default function ExpensesPage() {
                           View
                         </Link>
 
-                        {/* Inline approval queue for managers — only on PENDING rows */}
-                        {canApprove && exp.status === 'PENDING' && (
+                        {/* Inline approval queue for managers — only on PENDING rows
+                            that the current user did NOT submit (segregation of duties).
+                            Backend enforces this too; hiding the buttons here just keeps
+                            managers from clicking something that always 403s. */}
+                        {canApprove && exp.status === 'PENDING' && exp.employeeId !== user?.employeeId && (
                           rejectId === exp.id ? (
                             // Expanded reject state: shows reason input inline
                             <span className="flex items-center gap-2">

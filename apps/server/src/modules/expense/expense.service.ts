@@ -50,20 +50,43 @@ export async function getExpenseForRequester(
 }
 
 // ─── SUBMIT ─────────────────────────────────────────────────────────────────
+//
+// When the user provides a category: instant submit, no AI call.
+// When the user leaves it blank: run the AI inline with a short timeout so the
+// response carries the category if it lands in time (~1-3s on the free tier
+// typically). If the AI is slow or fails, the request still returns within the
+// timeout window and the AI keeps running in the background — the row will get
+// patched on the next refetch. This avoids the "I submitted but the category is
+// blank" confusion without ever blocking the request for more than AI_INLINE_MS.
+
+const AI_INLINE_MS = 4000
 
 export async function submitExpense(
   companyId: string,
   employeeId: string,
   data: CreateExpenseInput
 ) {
-  // 1. Create the row immediately (always PENDING — set by schema default).
   const expense = await repo.createExpense(companyId, employeeId, data)
 
-  // 2. Fire-and-forget AI categorization. We do NOT await this. If it succeeds,
-  //    a follow-up DB write fills in categoryId. If it fails, the expense stays
-  //    in whatever category the user picked (or null = Uncategorized).
   if (!data.categoryId) {
-    void runAiCategorization(companyId, expense.id, data.title, data.notes ?? null)
+    let aiPatched = false
+    const aiTask = runAiCategorization(companyId, expense.id, data.title, data.notes ?? null)
+      .then(() => { aiPatched = true })
+
+    // Race the AI against a wall-clock timeout. Whoever resolves first wins;
+    // the loser keeps running in the background (no leak — runAiCategorization
+    // owns its own try/catch and DB writes).
+    await Promise.race([
+      aiTask,
+      new Promise<void>((resolve) => setTimeout(resolve, AI_INLINE_MS)),
+    ])
+
+    if (aiPatched) {
+      // AI already wrote categoryId to the row — refetch so the response
+      // includes it. Frontend won't need to re-poll for the category.
+      const refreshed = await repo.findExpenseById(expense.id, companyId)
+      if (refreshed) return refreshed
+    }
   }
 
   return expense

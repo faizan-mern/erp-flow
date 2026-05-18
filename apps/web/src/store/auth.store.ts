@@ -11,6 +11,9 @@ export interface AuthUser {
   role: 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'MANAGER' | 'EMPLOYEE'
   companyName: string
   companySlug: string
+  // Optional because not every account has a linked employee row, and old
+  // persisted sessions (pre-this-change) won't have it until next login.
+  employeeId?: string | null
 }
 
 interface AuthState {

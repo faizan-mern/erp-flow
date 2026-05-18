@@ -14,6 +14,7 @@ import { PageTransition } from '@/components/ui/page-transition'
 import { Card } from '@/components/ui/card'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/ui/page-header'
 
@@ -54,10 +55,25 @@ export default function NewExpensePage() {
 
   const submitMutation = useMutation({
     mutationFn: (data: SubmitExpenseData) => submitExpense(data),
-    onSuccess: () => {
+    onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] })
       toast.success('Expense submitted successfully')
       router.push('/dashboard/expenses')
+
+      // If the user left the category blank, the backend ran an inline AI
+      // categorization with a 4s timeout. When the AI takes longer than that
+      // (gpt-oss-120b averages 3-4s on free tier), the response comes back
+      // with categoryId still null and the AI keeps running in the background.
+      // Schedule a second invalidate at 6s so the list refetches and picks up
+      // the AI patch without forcing the user to reload the page.
+      //
+      // Phase 7 (Socket.IO) will replace this stopgap with a server-pushed
+      // `expense:categorized` event.
+      if (!created.categoryId) {
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['expenses'] })
+        }, 6000)
+      }
     },
     onError: (err: unknown) => {
       const message =
@@ -167,18 +183,13 @@ export default function NewExpensePage() {
                       />
                     </Field>
                   </div>
-                  <Field label="Category">
-                    <select
-                      name="categoryId"
-                      value={form.categoryId}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-border rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/40 bg-surface text-strong"
-                    >
+                  <Field label="Category" hint="Leave blank to let the AI auto-categorize from the title.">
+                    <Select name="categoryId" value={form.categoryId} onChange={handleChange}>
                       <option value="">— Select category —</option>
                       {(categories as ExpenseCategory[]).map((c) => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
-                    </select>
+                    </Select>
                   </Field>
                 </div>
               </div>

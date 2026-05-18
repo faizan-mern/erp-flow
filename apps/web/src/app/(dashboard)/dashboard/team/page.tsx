@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { UserPlus, X } from 'lucide-react'
 import {
@@ -13,6 +14,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import { Card } from '@/components/ui/card'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
@@ -27,10 +29,29 @@ const EMPTY_INVITE: InviteUserData = {
 }
 
 export default function TeamPage() {
+  // useSearchParams() requires a Suspense boundary in Next 15+, so the actual
+  // page content lives in TeamPageContent and we wrap it here.
+  return (
+    <Suspense fallback={null}>
+      <TeamPageContent />
+    </Suspense>
+  )
+}
+
+function TeamPageContent() {
   const queryClient = useQueryClient()
   const { user: currentUser } = useAuthStore()
-  const [showInvite, setShowInvite] = useState(false)
-  const [form, setForm] = useState<InviteUserData>(EMPTY_INVITE)
+  const searchParams = useSearchParams()
+
+  // Lazy initializer: if the URL has ?invite=1&firstName=...&lastName=...
+  // (from the "Invite as user" button on an employee detail page), open the
+  // invite form pre-filled. Avoids the setState-in-useEffect anti-pattern.
+  const [showInvite, setShowInvite] = useState(() => searchParams.get('invite') === '1')
+  const [form, setForm] = useState<InviteUserData>(() => ({
+    ...EMPTY_INVITE,
+    firstName: searchParams.get('firstName') ?? '',
+    lastName:  searchParams.get('lastName')  ?? '',
+  }))
   const [inviteError, setInviteError] = useState('')
 
   const { data: users = [], isLoading, isError } = useQuery({
@@ -117,15 +138,10 @@ export default function TeamPage() {
                 <Input name="password" type="text" value={form.password} onChange={handleInviteChange} placeholder="Min 8 characters" required />
               </Field>
               <Field label="Role">
-                <select
-                  name="role"
-                  value={form.role}
-                  onChange={handleInviteChange}
-                  className="w-full px-3 py-2 border border-border rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/40 bg-surface text-strong"
-                >
+                <Select name="role" value={form.role} onChange={handleInviteChange}>
                   <option value="EMPLOYEE">Employee</option>
                   <option value="MANAGER">Manager</option>
-                </select>
+                </Select>
               </Field>
             </div>
 
@@ -195,16 +211,18 @@ export default function TeamPage() {
                       {isSelf ? (
                         <Badge variant="active">{ROLE_LABEL[u.role]}</Badge>
                       ) : (
-                        <select
-                          value={u.role}
-                          disabled={roleMutation.isPending}
-                          onChange={(e) => roleMutation.mutate({ id: u.id, role: e.target.value as UserRole })}
-                          className="text-[12px] border border-border rounded-md px-2 py-1 bg-surface text-strong focus:outline-none focus:ring-2 focus:ring-primary/40"
-                        >
-                          <option value="EMPLOYEE">Employee</option>
-                          <option value="MANAGER">Manager</option>
-                          <option value="COMPANY_ADMIN">Admin</option>
-                        </select>
+                        <div className="inline-block w-32">
+                          <Select
+                            value={u.role}
+                            disabled={roleMutation.isPending}
+                            onChange={(e) => roleMutation.mutate({ id: u.id, role: e.target.value as UserRole })}
+                            className="py-1 text-[12px]"
+                          >
+                            <option value="EMPLOYEE">Employee</option>
+                            <option value="MANAGER">Manager</option>
+                            <option value="COMPANY_ADMIN">Admin</option>
+                          </Select>
+                        </div>
                       )}
                     </td>
                     <td className="px-5 py-3.5 text-muted">

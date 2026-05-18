@@ -61,7 +61,10 @@ export async function createCompanyAndAdmin(data: {
 }
 
 export async function findUserByEmail(email: string, companyId: string) {
-  return prisma.user.findUnique({ where: { email_companyId: { email, companyId } } })
+  return prisma.user.findUnique({
+    where: { email_companyId: { email, companyId } },
+    include: { employee: { select: { id: true } } },
+  })
 }
 
 export async function findUserById(id: string) {

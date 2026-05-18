@@ -4,12 +4,13 @@ import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, UserPlus } from 'lucide-react'
 import {
   fetchEmployee, updateEmployee, fetchAttendance,
   CreateEmployeeData, AttendanceRecord,
 } from '@/lib/employees'
 import { useAuthStore } from '@/store/auth.store'
+import { toast } from '@/store/toast.store'
 import { PageTransition } from '@/components/ui/page-transition'
 import { Card } from '@/components/ui/card'
 import { Field } from '@/components/ui/field'
@@ -33,11 +34,12 @@ export default function EditEmployeePage() {
   const { user } = useAuthStore()
 
   const canEdit = user?.role === 'COMPANY_ADMIN' || user?.role === 'MANAGER'
+  // Only admins can promote an employee to a login user (mirrors Team page invite gate).
+  const canInvite = user?.role === 'COMPANY_ADMIN'
 
   const [tab, setTab] = useState<Tab>('details')
   const [overrides, setOverrides] = useState<Partial<CreateEmployeeData>>({})
   const [error, setError] = useState('')
-  const [saved, setSaved] = useState(false)
 
   const { data: employee, isLoading } = useQuery({
     queryKey: ['employee', id],
@@ -68,8 +70,11 @@ export default function EditEmployeePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] })
       queryClient.invalidateQueries({ queryKey: ['employee', id] })
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2500)
+      // Clear local overrides so the form re-syncs with fresh server data.
+      // Without this, the user keeps seeing whatever they just typed even if
+      // the server applied a transform (trim, etc).
+      setOverrides({})
+      toast.success('Employee updated')
     },
     onError: (err: unknown) => {
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to save changes.'
@@ -197,7 +202,6 @@ export default function EditEmployeePage() {
                     </div>
 
                     {error && <p className="text-[13px] text-danger bg-danger-soft border border-danger/20 rounded-lg px-3 py-2">{error}</p>}
-                    {saved && <p className="text-[13px] text-success bg-success-soft border border-success/20 rounded-lg px-3 py-2">Changes saved.</p>}
 
                     <div className="flex gap-3 pt-1">
                       <Button type="submit" disabled={updateMutation.isPending}>
@@ -216,33 +220,52 @@ export default function EditEmployeePage() {
 
             <div className="w-72 shrink-0">
               <Card className="p-5">
-                <p className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-3">Employee Info</p>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-[11px] text-muted mb-1">Status</p>
-                    <Badge variant={employee.isActive ? 'active' : 'inactive'}>{employee.isActive ? 'Active' : 'Inactive'}</Badge>
+                <p className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-4">Account</p>
+
+                {employee.user?.email ? (
+                  // Linked login user — show email + role badge.
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-[11px] text-muted mb-1">Login Email</p>
+                      <p className="text-[12px] text-strong truncate" title={employee.user.email}>
+                        {employee.user.email}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted mb-1">Role</p>
+                      <Badge variant="active">
+                        {employee.user.role.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
+                      </Badge>
+                    </div>
                   </div>
+                ) : (
+                  // No linked user — the actionable state. Bridges Employee ↔ Team module.
                   <div>
-                    <p className="text-[11px] text-muted mb-1">Hired</p>
-                    <p className="text-[12px] text-strong">
-                      {employee.hireDate
-                        ? new Date(employee.hireDate).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })
-                        : '—'}
+                    <p className="text-[12px] text-muted leading-relaxed mb-3">
+                      This employee doesn&apos;t have a login account yet.
                     </p>
+                    {canInvite && (
+                      <Link
+                        href={`/dashboard/team?invite=1&firstName=${encodeURIComponent(employee.firstName)}&lastName=${encodeURIComponent(employee.lastName)}`}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] font-medium text-primary border border-primary/30 hover:bg-primary-soft transition-colors"
+                      >
+                        <UserPlus size={13} />
+                        Invite as user
+                      </Link>
+                    )}
                   </div>
-                  <div>
-                    <p className="text-[11px] text-muted mb-1">Login Email</p>
-                    <p className="text-[12px] text-strong truncate">
-                      {employee.user?.email ?? <span className="text-muted">Not a system user</span>}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] text-muted mb-1">Created</p>
-                    <p className="text-[12px] text-strong">
-                      {new Date(employee.createdAt).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })}
-                    </p>
-                  </div>
-                </div>
+                )}
+
+                {employee.hireDate && (
+                  <>
+                    <div className="border-t border-divider mt-4 pt-4">
+                      <p className="text-[11px] text-muted mb-1">Hired</p>
+                      <p className="text-[12px] text-strong">
+                        {new Date(employee.hireDate).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </p>
+                    </div>
+                  </>
+                )}
               </Card>
             </div>
           </div>

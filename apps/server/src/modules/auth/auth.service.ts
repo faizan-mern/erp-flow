@@ -85,6 +85,9 @@ export async function login(input: LoginInput, deviceInfo?: string) {
       role: user.role,
       companyName: company.name,
       companySlug: company.slug,
+      // Exposed so the frontend can compare it against expense.employeeId for
+      // self-approval UI gating. Backend still enforces segregation of duties.
+      employeeId: user.employee?.id ?? null,
     },
   }
 }

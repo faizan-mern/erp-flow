@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
 import { TableSkeleton } from '@/components/ui/skeleton'
+import { Select } from '@/components/ui/select'
 
 export default function EmployeesPage() {
   const router = useRouter()
@@ -83,21 +84,22 @@ export default function EmployeesPage() {
             className="w-full pl-8 pr-3 py-2 border border-border rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/40 bg-surface"
           />
         </div>
-        <select
-          value={filterActive ?? ''}
-          onChange={(e) => { setFilterActive(e.target.value || undefined); setPage(1) }}
-          className="px-3 py-2 border border-border rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/40 bg-surface text-strong"
-        >
-          <option value="">All Status</option>
-          <option value="true">Active</option>
-          <option value="false">Inactive</option>
-        </select>
+        <div className="w-40 shrink-0">
+          <Select
+            value={filterActive ?? ''}
+            onChange={(e) => { setFilterActive(e.target.value || undefined); setPage(1) }}
+          >
+            <option value="">All Status</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </Select>
+        </div>
       </div>
 
       {/* Table */}
       <div className="bg-surface rounded-xl border border-border overflow-hidden">
         {isLoading && (
-          <TableSkeleton headers={['Name', 'Department', 'Position', 'Status', 'Actions']} />
+          <TableSkeleton headers={['Name', 'Role', 'Status', 'Actions']} />
         )}
 
         {!isLoading && isError && (
@@ -127,8 +129,7 @@ export default function EmployeesPage() {
             <thead className="border-b border-border">
               <tr>
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted uppercase tracking-wider">Name</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted uppercase tracking-wider">Department</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted uppercase tracking-wider">Position</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted uppercase tracking-wider">Role</th>
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted uppercase tracking-wider">Status</th>
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted uppercase tracking-wider">Actions</th>
               </tr>
@@ -142,8 +143,9 @@ export default function EmployeesPage() {
                       <p className="text-[11px] text-muted mt-0.5">{emp.user.email}</p>
                     )}
                   </td>
-                  <td className="px-5 py-3.5 text-muted">{emp.department || '—'}</td>
-                  <td className="px-5 py-3.5 text-muted">{emp.position || '—'}</td>
+                  <td className="px-5 py-3.5 text-muted">
+                    {[emp.position, emp.department].filter(Boolean).join(' · ') || '—'}
+                  </td>
                   <td className="px-5 py-3.5">
                     <Badge variant={emp.isActive ? 'active' : 'inactive'}>
                       {emp.isActive ? 'Active' : 'Inactive'}

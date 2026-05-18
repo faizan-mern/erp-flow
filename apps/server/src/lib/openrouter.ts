@@ -29,18 +29,41 @@ ${notes ? `Notes: ${notes}` : ''}
 Respond with ONLY the category name from the list above. No explanation, no punctuation, no extra words.`
 
   try {
-    const completion = await ai.chat.completions.create({
-      model: MODEL,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0,
-      max_tokens: 10,
-    })
+    const completion = await ai.chat.completions.create(
+      {
+        model: MODEL,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0,
+        max_tokens: 10,
+      },
+      // Per-request timeout. The default SDK timeout is ~10 minutes which is
+      // absurd for a 1-token classification. 8s is well above typical free-tier
+      // latency but short enough that a hung upstream doesn't leak threads.
+      { timeout: 8000 },
+    )
 
     const raw = completion.choices[0]?.message?.content?.trim() ?? ''
 
-    // Validate the AI returned one of our exact category names (case-insensitive).
-    const match = categories.find((c) => c.name.toLowerCase() === raw.toLowerCase())
-    return match?.name ?? null
+    // Free-tier models (Mistral 7B etc.) often ignore "no punctuation" and return
+    // things like "Meals." or `"Meals"` or "Category: Meals". Strip surrounding
+    // punctuation/quotes and any leading "label:" prefix before matching.
+    const cleaned = raw
+      .replace(/^["'`\s]+|["'`.\s]+$/g, '')   // trim quotes + trailing period
+      .replace(/^[A-Za-z\s]+:\s*/, '')        // strip "Category: " style prefixes
+      .trim()
+
+    // Two-stage match: exact (case-insensitive) first, then substring as fallback.
+    // The substring fallback catches things like "the category is Meals" where the
+    // exact match fails but the category name still appears in the response.
+    const lower = cleaned.toLowerCase()
+    const exact = categories.find((c) => c.name.toLowerCase() === lower)
+    const fuzzy = exact ?? categories.find((c) => lower.includes(c.name.toLowerCase()))
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[AI] raw response:', JSON.stringify(raw), '→ matched:', fuzzy?.name ?? 'NONE')
+    }
+
+    return fuzzy?.name ?? null
   } catch (err) {
     console.warn('[AI] categorizeExpense failed:', (err as Error).message)
     return null

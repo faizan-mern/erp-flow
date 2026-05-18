@@ -33,6 +33,14 @@ export const recordMovementSchema = z.object({
   type:     z.enum(['IN', 'OUT', 'ADJUSTMENT']),
   quantity: z.number().int().nonnegative('Quantity cannot be negative'),
   reason:   z.string().max(500).optional(),
+}).superRefine((value, ctx) => {
+  if (value.type !== 'ADJUSTMENT' && value.quantity === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['quantity'],
+      message: 'Quantity must be greater than zero for IN/OUT movements',
+    })
+  }
 })
 
 export type CreateProductInput     = z.infer<typeof createProductSchema>

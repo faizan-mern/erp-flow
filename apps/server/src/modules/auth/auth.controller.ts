@@ -19,7 +19,7 @@ const COOKIE_OPTIONS = {
 export async function register(req: Request, res: Response, next: NextFunction) {
   try {
     const input = registerSchema.parse(req.body)
-    const result = await service.register(input)
+    const result = await service.register(input, req.ip)
     sendSuccess(res, result, 'Company registered. Please check your email to verify your account.', 201)
   } catch (err) {
     next(err)
@@ -30,7 +30,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
   try {
     const input = loginSchema.parse(req.body)
     const deviceInfo = req.headers['user-agent']
-    const { accessToken, refreshToken, user } = await service.login(input, deviceInfo)
+    const { accessToken, refreshToken, user } = await service.login(input, deviceInfo, req.ip)
 
     res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS)
     sendSuccess(res, { accessToken, user }, 'Logged in successfully')
@@ -55,7 +55,7 @@ export async function refresh(req: Request, res: Response, next: NextFunction) {
 export async function logout(req: Request, res: Response, next: NextFunction) {
   try {
     const token = req.cookies?.refreshToken
-    if (token) await service.logout(token)
+    if (token) await service.logout(token, req.ip)
     res.clearCookie('refreshToken')
     sendSuccess(res, null, 'Logged out successfully')
   } catch (err) {

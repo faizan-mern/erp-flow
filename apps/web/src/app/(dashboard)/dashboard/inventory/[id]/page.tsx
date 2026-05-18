@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { ArrowLeft, ArrowDownToLine, ArrowUpFromLine, Scale } from 'lucide-react'
 import {
-  fetchProduct, fetchMovements, updateProduct, recordMovement,
+  fetchProduct, fetchMovements, updateProduct, recordMovement, deactivateProduct,
   StockMovement, StockMovementType, UpdateProductData, RecordMovementData,
 } from '@/lib/products'
 import { useAuthStore } from '@/store/auth.store'
@@ -52,6 +52,7 @@ export default function ProductDetailPage() {
     reason: '',
   })
   const [movementError, setMovementError] = useState('')
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false)
 
   const { data: product, isLoading } = useQuery({
     queryKey: ['product', id],
@@ -86,6 +87,18 @@ export default function ProductDetailPage() {
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to save changes.'
       setError(message)
     },
+  })
+
+  const deactivateMutation = useMutation({
+    mutationFn: () => deactivateProduct(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+      queryClient.invalidateQueries({ queryKey: ['product', id] })
+      queryClient.invalidateQueries({ queryKey: ['products-low-stock-count'] })
+      setConfirmDeactivate(false)
+      toast.success('Product deactivated')
+    },
+    onError: () => toast.error('Failed to deactivate product'),
   })
 
   const movementMutation = useMutation({
@@ -197,6 +210,31 @@ export default function ProductDetailPage() {
               <Badge variant={product.isActive ? 'active' : 'inactive'}>
                 {product.isActive ? 'Active' : 'Inactive'}
               </Badge>
+              {canEdit && product.isActive && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirmDeactivate) {
+                      deactivateMutation.mutate()
+                    } else {
+                      setConfirmDeactivate(true)
+                    }
+                  }}
+                  onBlur={() => setConfirmDeactivate(false)}
+                  disabled={deactivateMutation.isPending}
+                  className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors disabled:opacity-50 ${
+                    confirmDeactivate
+                      ? 'bg-danger-soft text-danger border border-danger/20'
+                      : 'border border-border text-muted hover:text-danger hover:border-danger/40'
+                  }`}
+                >
+                  {deactivateMutation.isPending
+                    ? 'Deactivating…'
+                    : confirmDeactivate
+                    ? 'Confirm deactivate?'
+                    : 'Deactivate'}
+                </button>
+              )}
             </div>
           </div>
         </Card>

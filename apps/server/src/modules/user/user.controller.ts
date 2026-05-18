@@ -26,6 +26,7 @@ export async function invite(req: AuthRequest, res: Response, next: NextFunction
       resourceType: 'user',
       resourceId: user.id,
       details: { email: input.email, role: input.role },
+      ipAddress: req.ip,
     })
     sendSuccess(res, user, 'User invited', 201)
   } catch (err) { next(err) }
@@ -43,6 +44,7 @@ export async function update(req: AuthRequest, res: Response, next: NextFunction
       resourceType: 'user',
       resourceId: id,
       details: input as Record<string, string | number | boolean | null>,
+      ipAddress: req.ip,
     })
     sendSuccess(res, user, 'User updated')
   } catch (err) { next(err) }

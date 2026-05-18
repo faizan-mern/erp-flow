@@ -11,6 +11,7 @@ import employeeRoutes from './modules/employee/employee.routes'
 import expenseRoutes from './modules/expense/expense.routes'
 import userRoutes from './modules/user/user.routes'
 import productRoutes from './modules/product/product.routes'
+import aiRoutes from './modules/ai/ai.routes'
 import { errorHandler } from './middleware/error.middleware'
 
 const app = express()
@@ -38,6 +39,7 @@ v1.use('/employees', employeeRoutes)
 v1.use('/expenses', expenseRoutes)
 v1.use('/users', userRoutes)
 v1.use('/products', productRoutes)
+v1.use('/ai', aiRoutes)
 app.use('/api/v1', v1)
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))

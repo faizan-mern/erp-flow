@@ -62,6 +62,7 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
       resourceType: 'employee',
       resourceId: employee.id,
       details: { firstName: input.firstName, lastName: input.lastName },
+      ipAddress: req.ip,
     })
     sendSuccess(res, employee, 'Employee created', 201)
   } catch (err) {
@@ -81,6 +82,7 @@ export async function update(req: AuthRequest, res: Response, next: NextFunction
       resourceType: 'employee',
       resourceId: id,
       details: input as Record<string, string | number | boolean | null>,
+      ipAddress: req.ip,
     })
     sendSuccess(res, employee, 'Employee updated')
   } catch (err) {
@@ -98,6 +100,7 @@ export async function deactivate(req: AuthRequest, res: Response, next: NextFunc
       action: 'DELETE',
       resourceType: 'employee',
       resourceId: id,
+      ipAddress: req.ip,
     })
     sendSuccess(res, null, 'Employee deactivated')
   } catch (err) {

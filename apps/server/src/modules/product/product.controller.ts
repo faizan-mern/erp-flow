@@ -43,6 +43,7 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
       resourceType: 'product',
       resourceId: product.id,
       details: { name: input.name, sku: input.sku, initialQuantity: input.quantity },
+      ipAddress: req.ip,
     })
     sendSuccess(res, product, 'Product created', 201)
   } catch (err) { next(err) }
@@ -60,6 +61,7 @@ export async function update(req: AuthRequest, res: Response, next: NextFunction
       resourceType: 'product',
       resourceId: id,
       details: input as Record<string, string | number | boolean | null>,
+      ipAddress: req.ip,
     })
     sendSuccess(res, product, 'Product updated')
   } catch (err) { next(err) }
@@ -75,6 +77,7 @@ export async function deactivate(req: AuthRequest, res: Response, next: NextFunc
       action: 'DELETE',
       resourceType: 'product',
       resourceId: id,
+      ipAddress: req.ip,
     })
     sendSuccess(res, null, 'Product deactivated')
   } catch (err) { next(err) }
@@ -98,6 +101,7 @@ export async function recordMovement(req: AuthRequest, res: Response, next: Next
         newQuantity: result.newQuantity,
         reason: input.reason ?? null,
       },
+      ipAddress: req.ip,
     })
     sendSuccess(res, result, 'Stock movement recorded', 201)
   } catch (err) { next(err) }

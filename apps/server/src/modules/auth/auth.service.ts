@@ -10,7 +10,7 @@ function fail(message: string, status: number): never {
   throw Object.assign(new Error(message), { status })
 }
 
-export async function register(input: RegisterInput) {
+export async function register(input: RegisterInput, ipAddress?: string) {
   const existingCompany = await repo.findCompanyBySlug(input.companySlug)
   if (existingCompany) fail('Company slug already taken', 409)
 
@@ -38,12 +38,13 @@ export async function register(input: RegisterInput) {
     resourceType: 'company',
     resourceId: company.id,
     details: { email: user.email, slug: input.companySlug },
+    ipAddress,
   })
 
   return { companyId: company.id, userId: user.id, email: user.email }
 }
 
-export async function login(input: LoginInput, deviceInfo?: string) {
+export async function login(input: LoginInput, deviceInfo?: string, ipAddress?: string) {
   const company = await repo.findCompanyBySlug(input.companySlug)
   if (!company) fail('Company not found', 404)
 
@@ -72,6 +73,7 @@ export async function login(input: LoginInput, deviceInfo?: string) {
     resourceType: 'session',
     resourceId: user.id,
     details: deviceInfo ? { deviceInfo } : undefined,
+    ipAddress,
   })
 
   return {
@@ -115,7 +117,7 @@ export async function refresh(rawRefreshToken: string) {
   return { accessToken: newAccessToken, refreshToken: newRefreshToken }
 }
 
-export async function logout(rawRefreshToken: string) {
+export async function logout(rawRefreshToken: string, ipAddress?: string) {
   const tokenHash = crypto.createHash('sha256').update(rawRefreshToken).digest('hex')
 
   // Look up the token's owner BEFORE deleting it so we can attribute the
@@ -132,6 +134,7 @@ export async function logout(rawRefreshToken: string) {
       action: 'LOGOUT',
       resourceType: 'session',
       resourceId: stored.user.id,
+      ipAddress,
     })
   }
 }

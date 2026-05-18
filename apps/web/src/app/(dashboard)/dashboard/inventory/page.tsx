@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { Search, Plus, AlertTriangle, Package } from 'lucide-react'
 import { fetchProducts, fetchLowStockCount, Product } from '@/lib/products'
@@ -16,6 +17,7 @@ import { TableSkeleton } from '@/components/ui/skeleton'
 import { Select } from '@/components/ui/select'
 
 export default function InventoryPage() {
+  const router = useRouter()
   const { user } = useAuthStore()
   const canWrite = user?.role === 'COMPANY_ADMIN' || user?.role === 'MANAGER'
 
@@ -58,7 +60,7 @@ export default function InventoryPage() {
           canWrite ? (
             <Link
               href="/dashboard/inventory/new"
-              className="inline-flex items-center gap-2 bg-primary text-white px-3.5 py-2 rounded-lg text-[13px] font-medium hover:bg-primary-hover transition-colors"
+              className="inline-flex items-center gap-2 bg-primary text-surface px-3.5 py-2 rounded-lg text-[13px] font-medium hover:bg-primary-hover transition-colors"
             >
               <Plus size={14} />
               Add Product
@@ -147,7 +149,7 @@ export default function InventoryPage() {
               canWrite && !lowStockOnly ? (
                 <Link
                   href="/dashboard/inventory/new"
-                  className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-[13px] font-medium hover:bg-primary-hover transition-colors"
+                  className="inline-flex items-center gap-2 bg-primary text-surface px-4 py-2 rounded-lg text-[13px] font-medium hover:bg-primary-hover transition-colors"
                 >
                   <Plus size={14} />
                   Add Product
@@ -175,7 +177,7 @@ export default function InventoryPage() {
                   <tr
                     key={p.id}
                     className={`hover:bg-canvas transition-colors cursor-pointer ${isLow ? 'bg-warning-soft/40' : ''}`}
-                    onClick={() => window.location.assign(`/dashboard/inventory/${p.id}`)}
+                    onClick={() => router.push(`/dashboard/inventory/${p.id}`)}
                   >
                     <td className="px-5 py-3.5">
                       <span className="font-mono text-[12px] text-strong">{p.sku}</span>

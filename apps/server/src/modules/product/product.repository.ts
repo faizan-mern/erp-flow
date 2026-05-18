@@ -1,5 +1,6 @@
 import { Prisma, StockMovementType } from '@prisma/client'
 import { prisma } from '../../prisma/client'
+import { cacheGet, cacheSet, cacheDel } from '../../lib/redis'
 import { CreateProductInput, UpdateProductInput, ListProductsQuery } from './product.validator'
 
 const PRODUCT_INCLUDE = {
@@ -21,26 +22,41 @@ export async function listProducts(companyId: string, filters: ListProductsQuery
   }
 
   if (filters.lowStockOnly === 'true') {
-    // Prisma's where clause cannot compare two columns on the same row;
-    // raw query is the only safe option for `quantity <= lowStockThreshold`.
-    const ids = await prisma.$queryRaw<{ id: string }[]>`
-      SELECT id FROM products
-      WHERE "companyId" = ${companyId}
-        AND "isActive" = true
-        AND quantity <= "lowStockThreshold"
-      ORDER BY "createdAt" DESC
-      OFFSET ${(filters.page - 1) * filters.limit}
-      LIMIT ${filters.limit}
-    `
-    const totalRow = await prisma.$queryRaw<{ count: bigint }[]>`
-      SELECT COUNT(*)::bigint AS count FROM products
-      WHERE "companyId" = ${companyId}
-        AND "isActive" = true
-        AND quantity <= "lowStockThreshold"
-    `
-    const products = ids.length > 0
+    const isActiveCond = filters.isActive === 'false'
+      ? Prisma.sql`AND "isActive" = false`
+      : Prisma.sql`AND "isActive" = true`
+    const searchCond = filters.search
+      ? Prisma.sql`AND (name ILIKE ${'%' + filters.search + '%'} OR sku ILIKE ${'%' + filters.search + '%'} OR barcode ILIKE ${'%' + filters.search + '%'})`
+      : Prisma.sql``
+    const categoryCond = filters.category
+      ? Prisma.sql`AND category = ${filters.category}`
+      : Prisma.sql``
+
+    const [idsResult, totalRow] = await Promise.all([
+      prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+        SELECT id FROM products
+        WHERE "companyId" = ${companyId}
+          ${isActiveCond}
+          AND quantity <= "lowStockThreshold"
+          ${searchCond}
+          ${categoryCond}
+        ORDER BY "createdAt" DESC
+        OFFSET ${(filters.page - 1) * filters.limit}
+        LIMIT ${filters.limit}
+      `),
+      prisma.$queryRaw<{ count: bigint }[]>(Prisma.sql`
+        SELECT COUNT(*)::bigint AS count FROM products
+        WHERE "companyId" = ${companyId}
+          ${isActiveCond}
+          AND quantity <= "lowStockThreshold"
+          ${searchCond}
+          ${categoryCond}
+      `),
+    ])
+
+    const products = idsResult.length > 0
       ? await prisma.product.findMany({
-          where: { id: { in: ids.map((r) => r.id) }, companyId },
+          where: { id: { in: idsResult.map((r) => r.id) }, companyId },
           include: PRODUCT_INCLUDE,
           orderBy: { createdAt: 'desc' },
         })
@@ -81,14 +97,21 @@ export async function findProductBySku(sku: string, companyId: string) {
   })
 }
 
+const LOW_STOCK_KEY = (companyId: string) => `inv:low_stock:${companyId}`
+
 export async function countLowStock(companyId: string): Promise<number> {
+  const cached = await cacheGet<number>(LOW_STOCK_KEY(companyId))
+  if (cached !== null) return cached
+
   const result = await prisma.$queryRaw<{ count: bigint }[]>`
     SELECT COUNT(*)::bigint AS count FROM products
     WHERE "companyId" = ${companyId}
       AND "isActive" = true
       AND quantity <= "lowStockThreshold"
   `
-  return Number(result[0]?.count ?? 0)
+  const count = Number(result[0]?.count ?? 0)
+  await cacheSet(LOW_STOCK_KEY(companyId), count, 30)
+  return count
 }
 
 export async function createProduct(
@@ -128,6 +151,7 @@ export async function createProduct(
       })
     }
 
+    await cacheDel(LOW_STOCK_KEY(companyId))
     return product
   })
 }
@@ -153,6 +177,7 @@ export async function deactivateProduct(id: string, companyId: string) {
     where: { id, companyId },
     data: { isActive: false },
   })
+  await cacheDel(LOW_STOCK_KEY(companyId))
   return findProductById(id, companyId)
 }
 
@@ -166,10 +191,13 @@ export async function recordMovement(
   performedById: string,
 ) {
   return prisma.$transaction(async (tx) => {
-    const product = await tx.product.findFirst({
-      where: { id: productId, companyId },
-      select: { id: true, quantity: true, isActive: true },
-    })
+    const rows = await tx.$queryRaw<{ id: string; quantity: number; isActive: boolean }[]>`
+      SELECT id, quantity, "isActive"
+      FROM products
+      WHERE id = ${productId} AND "companyId" = ${companyId}
+      FOR UPDATE
+    `
+    const product = rows[0]
     if (!product) {
       throw Object.assign(new Error('Product not found'), { status: 404 })
     }
@@ -194,10 +222,13 @@ export async function recordMovement(
       newQuantity = input.quantity
     }
 
-    await tx.product.update({
-      where: { id: productId },
-      data:  { quantity: newQuantity },
+    const updated = await tx.product.updateMany({
+      where: { id: productId, companyId },
+      data: { quantity: newQuantity },
     })
+    if (updated.count !== 1) {
+      throw Object.assign(new Error('Failed to update stock quantity'), { status: 409 })
+    }
 
     const movement = await tx.stockMovement.create({
       data: {
@@ -215,7 +246,9 @@ export async function recordMovement(
       },
     })
 
-    return { movement, newQuantity }
+    const result = { movement, newQuantity }
+    await cacheDel(LOW_STOCK_KEY(companyId))
+    return result
   })
 }
 

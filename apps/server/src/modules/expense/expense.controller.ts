@@ -64,6 +64,7 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
       resourceType: 'expense',
       resourceId: expense.id,
       details: { title: input.title, amount: input.amount },
+      ipAddress: req.ip,
     })
     sendSuccess(res, expense, 'Expense submitted', 201)
   } catch (err) { next(err) }
@@ -81,6 +82,7 @@ export async function update(req: AuthRequest, res: Response, next: NextFunction
       action: 'UPDATE',
       resourceType: 'expense',
       resourceId: id,
+      ipAddress: req.ip,
     })
     sendSuccess(res, expense, 'Expense updated')
   } catch (err) { next(err) }
@@ -99,6 +101,7 @@ export async function approve(req: AuthRequest, res: Response, next: NextFunctio
       action: 'APPROVE',
       resourceType: 'expense',
       resourceId: id,
+      ipAddress: req.ip,
     })
     sendSuccess(res, expense, 'Expense approved')
   } catch (err) { next(err) }
@@ -117,6 +120,7 @@ export async function reject(req: AuthRequest, res: Response, next: NextFunction
       resourceType: 'expense',
       resourceId: id,
       details: reason ? { reason } : undefined,
+      ipAddress: req.ip,
     })
     sendSuccess(res, expense, 'Expense rejected')
   } catch (err) { next(err) }

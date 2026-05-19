@@ -32,7 +32,8 @@ Thumbs.db
 AGENTS.md
 CLAUDE.md
 .claude/
-docs/
+
+docs-me/
 
 # Next.js boilerplate we don't use
 apps/web/public/next.svg

@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import * as repo from './auth.repository'
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../utils/jwt'
-import { sendVerificationEmail, sendPasswordResetEmail } from '../../utils/email'
+import { sendPasswordResetEmail } from '../../utils/email'
 import { logActivity } from '../../utils/activity'
 import { RegisterInput, LoginInput } from './auth.validator'
 
@@ -10,14 +10,14 @@ function fail(message: string, status: number): never {
   throw Object.assign(new Error(message), { status })
 }
 
-export async function register(input: RegisterInput, ipAddress?: string) {
+export async function register(input: RegisterInput, deviceInfo?: string, ipAddress?: string) {
   const existingCompany = await repo.findCompanyBySlug(input.companySlug)
   if (existingCompany) fail('Company slug already taken', 409)
 
   const passwordHash = await bcrypt.hash(input.password, 12)
   const verifyToken = crypto.randomBytes(32).toString('hex')
 
-  const { user, company } = await repo.createCompanyAndAdmin({
+  const { user, company, employee } = await repo.createCompanyAndAdmin({
     companyName: input.companyName,
     companySlug: input.companySlug,
     firstName: input.firstName,
@@ -27,9 +27,13 @@ export async function register(input: RegisterInput, ipAddress?: string) {
     verifyToken,
   })
 
-  sendVerificationEmail(user.email, verifyToken).catch(() => {
-    console.warn('Verification email failed to send for:', user.email)
-  })
+  const payload = { userId: user.id, companyId: company.id, role: user.role, email: user.email }
+  const accessToken = signAccessToken(payload)
+  const refreshToken = signRefreshToken(payload)
+
+  const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex')
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  await repo.saveRefreshToken(user.id, tokenHash, expiresAt, deviceInfo)
 
   logActivity({
     companyId: company.id,
@@ -41,7 +45,20 @@ export async function register(input: RegisterInput, ipAddress?: string) {
     ipAddress,
   })
 
-  return { companyId: company.id, userId: user.id, email: user.email }
+  return {
+    accessToken,
+    refreshToken,
+    user: {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      companyName: company.name,
+      companySlug: company.slug,
+      employeeId: employee.id,
+    },
+  }
 }
 
 export async function login(input: LoginInput, deviceInfo?: string, ipAddress?: string) {

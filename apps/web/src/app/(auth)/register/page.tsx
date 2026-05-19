@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { CheckCircle } from 'lucide-react'
 import api from '@/lib/api'
+import { useAuthStore } from '@/store/auth.store'
 import { Card } from '@/components/ui/card'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 
 export default function RegisterPage() {
   const router = useRouter()
+  const { setAuth } = useAuthStore()
 
   const [form, setForm] = useState({
     companyName: '',
@@ -23,7 +24,6 @@ export default function RegisterPage() {
     password: '',
   })
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -42,8 +42,13 @@ export default function RegisterPage() {
     setError('')
     setLoading(true)
     try {
-      await api.post('/api/v1/auth/register', form)
-      setSuccess('Company registered! Check your email to verify your account, then log in.')
+      const res = await api.post('/api/v1/auth/register', form)
+      const { accessToken, user } = res.data.data
+      setAuth(user, accessToken)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('lastCompanySlug', form.companySlug)
+      }
+      router.push('/dashboard')
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
@@ -52,21 +57,6 @@ export default function RegisterPage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  if (success) {
-    return (
-      <Card className="w-full max-w-md p-8 shadow-sm text-center">
-        <div className="w-12 h-12 bg-success-soft rounded-full flex items-center justify-center mx-auto mb-4">
-          <CheckCircle size={22} className="text-success" />
-        </div>
-        <h2 className="text-xl font-semibold text-strong mb-2">You&apos;re all set</h2>
-        <p className="text-muted text-sm mb-6">{success}</p>
-        <Button onClick={() => router.push('/login')}>
-          Go to login
-        </Button>
-      </Card>
-    )
   }
 
   return (

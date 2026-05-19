@@ -20,8 +20,11 @@ const COOKIE_OPTIONS = {
 export async function register(req: Request, res: Response, next: NextFunction) {
   try {
     const input = registerSchema.parse(req.body)
-    const result = await service.register(input, req.ip)
-    sendSuccess(res, result, 'Company registered. Please check your email to verify your account.', 201)
+    const deviceInfo = req.headers['user-agent']
+    const { accessToken, refreshToken, user } = await service.register(input, deviceInfo, req.ip)
+
+    res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS)
+    sendSuccess(res, { accessToken, user }, 'Company registered successfully', 201)
   } catch (err) {
     next(err)
   }

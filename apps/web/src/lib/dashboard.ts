@@ -23,11 +23,11 @@ export interface ActivityItem {
 }
 
 export async function fetchDashboardStats(): Promise<DashboardStats> {
-  const { data } = await api.get<{ data: DashboardStats }>('/dashboard/stats')
+  const { data } = await api.get<{ data: DashboardStats }>('/api/v1/dashboard/stats')
   return data.data
 }
 
 export async function fetchDashboardActivity(): Promise<ActivityItem[]> {
-  const { data } = await api.get<{ data: { items: ActivityItem[] } }>('/dashboard/activity')
+  const { data } = await api.get<{ data: { items: ActivityItem[] } }>('/api/v1/dashboard/activity')
   return data.data.items
 }

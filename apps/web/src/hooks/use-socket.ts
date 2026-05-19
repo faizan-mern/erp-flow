@@ -41,6 +41,7 @@ export function useSocket() {
 
     socket.on('dashboard:refresh', () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-activity'] })
     })
 
     return () => {

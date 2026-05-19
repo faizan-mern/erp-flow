@@ -144,7 +144,7 @@ export default function EmployeesPage() {
                     )}
                   </td>
                   <td className="px-5 py-3.5 text-muted">
-                    {[emp.position, emp.department].filter(Boolean).join(' · ') || '—'}
+                    {[emp.position, emp.department].filter(Boolean).join(' · ') || <span className="text-muted/50 italic">Not assigned</span>}
                   </td>
                   <td className="px-5 py-3.5">
                     <Badge variant={emp.isActive ? 'active' : 'inactive'}>

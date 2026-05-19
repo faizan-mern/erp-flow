@@ -7,6 +7,7 @@ import {
   fetchMyEmployee, fetchAttendance, checkIn, checkOut,
   AttendanceRecord,
 } from '@/lib/employees'
+import { formatTime12h } from '@/lib/format'
 import { PageTransition } from '@/components/ui/page-transition'
 import { PageHeader } from '@/components/ui/page-header'
 import { Card } from '@/components/ui/card'
@@ -175,10 +176,10 @@ export default function AttendancePage() {
                     </Badge>
                   </td>
                   <td className="px-5 py-3 text-muted">
-                    {record.checkIn ? new Date(record.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                    {record.checkIn ? formatTime12h(record.checkIn) : <span className="text-muted/50 italic">Not checked in</span>}
                   </td>
                   <td className="px-5 py-3 text-muted">
-                    {record.checkOut ? new Date(record.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                    {record.checkOut ? formatTime12h(record.checkOut) : <span className="text-muted/50 italic">Not checked out</span>}
                   </td>
                 </tr>
               ))}

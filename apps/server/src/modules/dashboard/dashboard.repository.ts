@@ -2,13 +2,13 @@ import { prisma } from '../../prisma/client'
 
 export async function getStats(companyId: string) {
   const sevenDaysAgo = new Date()
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
-  sevenDaysAgo.setHours(0, 0, 0, 0)
+  sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 6)
+  sevenDaysAgo.setUTCHours(0, 0, 0, 0)
 
   const sixMonthsAgo = new Date()
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5)
-  sixMonthsAgo.setDate(1)
-  sixMonthsAgo.setHours(0, 0, 0, 0)
+  sixMonthsAgo.setUTCMonth(sixMonthsAgo.getUTCMonth() - 5)
+  sixMonthsAgo.setUTCDate(1)
+  sixMonthsAgo.setUTCHours(0, 0, 0, 0)
 
   const [
     employeeTotal,
@@ -114,10 +114,11 @@ export async function getStats(companyId: string) {
   const attendance = []
   for (let i = 6; i >= 0; i--) {
     const d = new Date()
-    d.setDate(d.getDate() - i)
+    d.setUTCDate(d.getUTCDate() - i)
+    d.setUTCHours(0, 0, 0, 0)
     const key = d.toISOString().slice(0, 10)
     const entry = attendanceMap.get(key) ?? { present: 0, absent: 0, late: 0 }
-    attendance.push({ date: DAY_LABELS[d.getDay()], ...entry })
+    attendance.push({ date: DAY_LABELS[d.getUTCDay()], ...entry })
   }
 
   return {

@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 
 export default function LoginPage() {
   const router = useRouter()
-  const { setAuth } = useAuthStore()
+  const { setAuth, logout } = useAuthStore()
 
   // Prefill companySlug with the last value the user successfully logged in with.
   // localStorage gate is for SSR — `window` is undefined on the server pass.
@@ -46,8 +46,9 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Login failed. Please check your details.'
+        'Invalid email or password. Please try again.'
       setError(message)
+      logout()
     } finally {
       setLoading(false)
     }

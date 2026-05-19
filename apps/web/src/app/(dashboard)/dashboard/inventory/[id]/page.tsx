@@ -327,13 +327,13 @@ export default function ProductDetailPage() {
                   <div className="space-y-4">
                     <Detail label="Name" value={product.name} />
                     <Detail label="SKU" value={product.sku} mono />
-                    <Detail label="Category" value={product.category ?? '—'} />
+                    <Detail label="Category" value={product.category || 'Not categorized'} />
                     <Detail label="Unit Price" value={formatMoney(product.unitPrice)} />
                     <Detail label="Stock Quantity" value={String(product.quantity)} />
                     <Detail label="Low-Stock Threshold" value={String(product.lowStockThreshold)} />
-                    <Detail label="Warehouse Location" value={product.warehouseLocation ?? '—'} />
-                    <Detail label="Barcode" value={product.barcode ?? '—'} />
-                    <Detail label="Description" value={product.description ?? '—'} />
+                    <Detail label="Warehouse Location" value={product.warehouseLocation || 'Not set'} />
+                    <Detail label="Barcode" value={product.barcode || 'Not set'} />
+                    <Detail label="Description" value={product.description || 'No description'} />
                   </div>
                 )}
               </Card>
@@ -455,9 +455,9 @@ export default function ProductDetailPage() {
                         </span>
                       </td>
                       <td className="px-5 py-3 text-muted">
-                        {m.performedBy ? `${m.performedBy.firstName} ${m.performedBy.lastName}` : '—'}
+                        {m.performedBy ? `${m.performedBy.firstName} ${m.performedBy.lastName}` : <span className="text-muted/50">System</span>}
                       </td>
-                      <td className="px-5 py-3 text-muted">{m.reason || '—'}</td>
+                      <td className="px-5 py-3 text-muted">{m.reason || <span className="text-muted/50 italic">No reason</span>}</td>
                     </tr>
                   ))}
                 </tbody>

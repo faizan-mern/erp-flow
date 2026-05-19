@@ -228,7 +228,7 @@ function TeamPageContent() {
                     <td className="px-5 py-3.5 text-muted">
                       {u.lastLoginAt
                         ? new Date(u.lastLoginAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
-                        : '—'}
+                        : <span className="text-muted/50 italic">Never</span>}
                     </td>
                   </tr>
                 )

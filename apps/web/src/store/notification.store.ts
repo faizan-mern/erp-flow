@@ -18,6 +18,7 @@ interface NotificationState {
   incrementUnread: () => void
   setInitial: (notifications: NotificationItem[], unreadCount: number) => void
   clearUnread: () => void
+  reset: () => void
 }
 
 export const useNotificationStore = create<NotificationState>()((set) => ({
@@ -32,4 +33,6 @@ export const useNotificationStore = create<NotificationState>()((set) => ({
     set({ notifications, unreadCount, initialized: true }),
   clearUnread: () =>
     set({ unreadCount: 0 }),
+  reset: () =>
+    set({ notifications: [], unreadCount: 0, initialized: false }),
 }))

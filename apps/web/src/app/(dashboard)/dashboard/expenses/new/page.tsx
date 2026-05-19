@@ -185,7 +185,7 @@ export default function NewExpensePage() {
                   </div>
                   <Field label="Category" hint="Leave blank to let the AI auto-categorize from the title.">
                     <Select name="categoryId" value={form.categoryId} onChange={handleChange}>
-                      <option value="">— Select category —</option>
+                      <option value="">Select a category</option>
                       {(categories as ExpenseCategory[]).map((c) => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}

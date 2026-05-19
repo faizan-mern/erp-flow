@@ -6,9 +6,9 @@ const CURRENCY = 'PKR'
 const TZ = 'Asia/Karachi'
 
 export function formatMoney(amount: number | string | null | undefined): string {
-  if (amount === null || amount === undefined || amount === '') return '—'
+  if (amount === null || amount === undefined || amount === '') return ''
   const n = typeof amount === 'string' ? Number(amount) : amount
-  if (Number.isNaN(n)) return '—'
+  if (Number.isNaN(n)) return ''
   return new Intl.NumberFormat(LOCALE, {
     style: 'currency',
     currency: CURRENCY,
@@ -17,7 +17,7 @@ export function formatMoney(amount: number | string | null | undefined): string 
 }
 
 export function formatDate(iso: string | Date | null | undefined): string {
-  if (!iso) return '—'
+  if (!iso) return ''
   return new Intl.DateTimeFormat(LOCALE, {
     timeZone: TZ,
     year: 'numeric',
@@ -27,10 +27,21 @@ export function formatDate(iso: string | Date | null | undefined): string {
 }
 
 export function formatTime(iso: string | Date | null | undefined): string {
-  if (!iso) return '—'
+  if (!iso) return ''
   return new Intl.DateTimeFormat(LOCALE, {
     timeZone: TZ,
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
+  }).format(new Date(iso))
+}
+
+export function formatTime12h(iso: string | Date | null | undefined): string {
+  if (!iso) return ''
+  return new Intl.DateTimeFormat(LOCALE, {
+    timeZone: TZ,
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
   }).format(new Date(iso))
 }

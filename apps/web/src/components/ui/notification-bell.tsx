@@ -19,18 +19,17 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const queryClient = useQueryClient()
-  const { notifications, unreadCount, initialized, setInitial, clearUnread } = useNotificationStore()
+  const { notifications, unreadCount, setInitial, clearUnread } = useNotificationStore()
 
   const { data } = useQuery({
     queryKey: ['notifications'],
     queryFn: fetchNotifications,
-    enabled: !initialized,
-    staleTime: Infinity,
+    staleTime: 30_000,
   })
 
   useEffect(() => {
-    if (data && !initialized) setInitial(data.notifications, data.unreadCount)
-  }, [data, initialized, setInitial])
+    if (data) setInitial(data.notifications, data.unreadCount)
+  }, [data, setInitial])
 
   const markReadMutation = useMutation({
     mutationFn: markAllRead,

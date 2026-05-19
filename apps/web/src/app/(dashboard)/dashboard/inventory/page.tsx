@@ -142,7 +142,7 @@ export default function InventoryPage() {
             title={lowStockOnly ? 'No low-stock items' : 'No products yet'}
             description={
               lowStockOnly
-                ? 'Everything is above threshold — good news.'
+                ? 'All products are well-stocked.'
                 : 'Add your first product to start tracking inventory and stock movements.'
             }
             action={

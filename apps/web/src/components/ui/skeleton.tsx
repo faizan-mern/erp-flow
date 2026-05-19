@@ -6,6 +6,19 @@ interface TableSkeletonProps {
   rows?: number
 }
 
+export function StatCardSkeleton() {
+  return (
+    <div className="p-5 flex flex-col gap-3 bg-surface rounded-xl border border-border">
+      <div className="flex items-center justify-between">
+        <div className="h-3 w-24 animate-pulse bg-divider rounded" />
+        <div className="h-6 w-6 animate-pulse bg-divider rounded-md" />
+      </div>
+      <div className="h-7 w-20 animate-pulse bg-divider rounded" />
+      <div className="h-2.5 w-16 animate-pulse bg-divider rounded opacity-60" />
+    </div>
+  )
+}
+
 export function TableSkeleton({ headers, rows = 6 }: TableSkeletonProps) {
   return (
     <table className="w-full text-[13px]">

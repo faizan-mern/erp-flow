@@ -13,6 +13,7 @@ import { formatMoney } from '@/lib/format'
 import { useAuthStore } from '@/store/auth.store'
 import { PageTransition } from '@/components/ui/page-transition'
 import { Card } from '@/components/ui/card'
+import { StatCardSkeleton } from '@/components/ui/skeleton'
 
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -84,16 +85,20 @@ export default function DashboardPage() {
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 
-  const monthlyData = (stats?.expenses.monthly ?? []).map((m) => ({
-    label: MONTH_ABBR[Number(m.month.slice(5, 7)) - 1],
-    total: m.total,
-  }))
+  const monthlyData = statsLoading
+    ? []
+    : (stats?.expenses.monthly ?? []).map((m) => ({
+        label: MONTH_ABBR[Number(m.month.slice(5, 7)) - 1],
+        total: m.total,
+      }))
 
-  const pieData = (stats?.expenses.byCategory ?? []).map((c) => ({
-    name:  c.name,
-    value: c.total,
-    color: c.color,
-  }))
+  const pieData = statsLoading
+    ? []
+    : (stats?.expenses.byCategory ?? []).map((c) => ({
+        name:  c.name,
+        value: c.total,
+        color: c.color,
+      }))
 
   const lowStock = stats?.inventory.lowStockCount ?? 0
 
@@ -110,45 +115,60 @@ export default function DashboardPage() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard
-          label="Active Employees"
-          value={statsLoading ? '—' : String(stats?.employees.active ?? 0)}
-          note={`${stats?.employees.total ?? 0} total`}
-          icon={Users}
-          color="text-primary"
-          bg="bg-primary-soft"
-        />
-        <StatCard
-          label="Approved Expenses"
-          value={statsLoading ? '—' : formatMoney(stats?.expenses.approved.total ?? 0)}
-          note={`${stats?.expenses.pending.count ?? 0} pending approval`}
-          icon={Receipt}
-          color="text-success"
-          bg="bg-success-soft"
-        />
-        <StatCard
-          label="Inventory Value"
-          value={statsLoading ? '—' : formatMoney(stats?.inventory.totalValue ?? 0)}
-          note="Active products"
-          icon={Package}
-          color="text-primary"
-          bg="bg-primary-soft"
-        />
-        <StatCard
-          label="Low Stock Items"
-          value={statsLoading ? '—' : String(lowStock)}
-          note="Below threshold"
-          icon={TrendingDown}
-          color={lowStock > 0 ? 'text-danger' : 'text-muted'}
-          bg={lowStock > 0 ? 'bg-danger-soft' : 'bg-canvas'}
-        />
+        {statsLoading ? (
+          <>
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </>
+        ) : (
+          <>
+            <StatCard
+              label="Active Employees"
+              value={String(stats?.employees.active ?? 0)}
+              note={`${stats?.employees.total ?? 0} total`}
+              icon={Users}
+              color="text-primary"
+              bg="bg-primary-soft"
+            />
+            <StatCard
+              label="Approved Expenses"
+              value={formatMoney(stats?.expenses.approved.total ?? 0)}
+              note={`${stats?.expenses.pending.count ?? 0} pending approval`}
+              icon={Receipt}
+              color="text-success"
+              bg="bg-success-soft"
+            />
+            <StatCard
+              label="Inventory Value"
+              value={formatMoney(stats?.inventory.totalValue ?? 0)}
+              note="Active products"
+              icon={Package}
+              color="text-primary"
+              bg="bg-primary-soft"
+            />
+            <StatCard
+              label="Low Stock Items"
+              value={String(lowStock)}
+              note="Below threshold"
+              icon={TrendingDown}
+              color={lowStock > 0 ? 'text-danger' : 'text-muted'}
+              bg={lowStock > 0 ? 'bg-danger-soft' : 'bg-canvas'}
+            />
+          </>
+        )}
       </div>
 
       {/* Charts row: Line + Pie */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <Card className="p-6">
           <p className="text-[13px] font-semibold text-strong mb-5">Monthly Expenses — Last 6 Months</p>
-          {monthlyData.length > 0 ? (
+          {statsLoading ? (
+            <div className="h-[220px] flex items-center justify-center">
+              <div className="h-3 w-48 animate-pulse bg-divider rounded" />
+            </div>
+          ) : monthlyData.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={monthlyData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                 <defs>
@@ -188,7 +208,11 @@ export default function DashboardPage() {
 
         <Card className="p-6">
           <p className="text-[13px] font-semibold text-strong mb-5">Expenses by Category</p>
-          {pieData.length > 0 ? (
+          {statsLoading ? (
+            <div className="h-[220px] flex items-center justify-center">
+              <div className="h-3 w-48 animate-pulse bg-divider rounded" />
+            </div>
+          ) : pieData.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
                 <Pie
@@ -222,7 +246,11 @@ export default function DashboardPage() {
       {/* Attendance bar chart */}
       <Card className="p-6 mb-6">
         <p className="text-[13px] font-semibold text-strong mb-5">Attendance — Last 7 Days</p>
-        {(stats?.attendance ?? []).some((d) => d.present + d.absent + d.late > 0) ? (
+        {statsLoading ? (
+        <div className="h-[200px] flex items-center justify-center">
+          <div className="h-3 w-48 animate-pulse bg-divider rounded" />
+        </div>
+      ) : (stats?.attendance ?? []).some((d) => d.present + d.absent + d.late > 0) ? (
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={stats?.attendance} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />

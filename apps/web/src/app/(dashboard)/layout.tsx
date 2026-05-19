@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/auth.store'
+import { useNotificationStore } from '@/store/notification.store'
 import api from '@/lib/api'
 import {
   LayoutDashboard,
@@ -47,15 +48,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter()
   const queryClient = useQueryClient()
   const { user, logout } = useAuthStore()
+  const resetNotifications = useNotificationStore((s) => s.reset)
   useSocket()
 
   async function handleLogout() {
     try {
       await api.post('/api/v1/auth/logout')
     } finally {
-      // Wipe TanStack Query cache so the next user doesn't briefly see the
-      // previous user's data (expenses/employees/etc) before refetch lands.
       queryClient.clear()
+      resetNotifications()
       logout()
       router.push('/login')
     }

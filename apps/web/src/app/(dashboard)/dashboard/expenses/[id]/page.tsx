@@ -122,7 +122,7 @@ export default function ExpenseDetailPage() {
                             style={{ background: expense.category.color }}
                           />
                         )}
-                        <p className="text-[13px] text-strong">{expense.category?.name ?? '—'}</p>
+                        <p className="text-[13px] text-strong">{expense.category?.name ?? <span className="text-muted/50 italic">Uncategorized</span>}</p>
                       </div>
                     </div>
                     <div>

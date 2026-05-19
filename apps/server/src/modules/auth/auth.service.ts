@@ -27,7 +27,7 @@ export async function register(input: RegisterInput, ipAddress?: string) {
     verifyToken,
   })
 
-  await sendVerificationEmail(user.email, verifyToken).catch(() => {
+  sendVerificationEmail(user.email, verifyToken).catch(() => {
     console.warn('Verification email failed to send for:', user.email)
   })
 

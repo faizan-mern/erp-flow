@@ -12,6 +12,7 @@ const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: isProd,
   sameSite: (isProd ? 'none' : 'strict') as 'none' | 'strict',
+  partitioned: isProd,
   maxAge: 7 * 24 * 60 * 60 * 1000,
   path: '/',
 }

@@ -8,8 +8,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setAccessToken, logout } = useAuthStore()
 
   useEffect(() => {
-    const persistedUser = useAuthStore.getState().user
-    if (!persistedUser) return
+    const state = useAuthStore.getState()
+    if (!state.user) return
+    if (state.accessToken) return
 
     const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
     axios

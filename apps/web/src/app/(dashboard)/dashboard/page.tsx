@@ -1,7 +1,8 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { Users, Receipt, Package, TrendingDown } from 'lucide-react'
+import Link from 'next/link'
+import { Users, Receipt, Package, TrendingDown, Clock, Bell } from 'lucide-react'
 import {
   ResponsiveContainer,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -11,6 +12,7 @@ import {
 import { fetchDashboardStats, fetchDashboardActivity, type ActivityItem } from '@/lib/dashboard'
 import { formatMoney } from '@/lib/format'
 import { useAuthStore } from '@/store/auth.store'
+import { useNotificationStore } from '@/store/notification.store'
 import { PageTransition } from '@/components/ui/page-transition'
 import { Card } from '@/components/ui/card'
 import { StatCardSkeleton } from '@/components/ui/skeleton'
@@ -67,8 +69,113 @@ const TOOLTIP_STYLE = {
   boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
 }
 
-export default function DashboardPage() {
+function EmployeeDashboard() {
   const { user } = useAuthStore()
+  const { notifications, unreadCount } = useNotificationStore()
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+
+  return (
+    <PageTransition>
+      <div className="mb-7">
+        <h2 className="text-[22px] font-semibold text-strong">
+          {greeting}, {user?.firstName}
+        </h2>
+        <p className="text-[13px] text-muted mt-1">
+          Your personal workspace.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <Link href="/dashboard/expenses">
+          <Card className="p-5 flex flex-col gap-3 hover:border-primary/30 transition-colors cursor-pointer h-full">
+            <div className="flex items-center justify-between">
+              <p className="text-[13px] font-medium text-muted">My Expenses</p>
+              <span className="bg-primary-soft text-primary p-1.5 rounded-md">
+                <Receipt size={14} strokeWidth={2} />
+              </span>
+            </div>
+            <p className="text-[13px] text-muted leading-relaxed">
+              Submit and track your expense claims. View approval status.
+            </p>
+          </Card>
+        </Link>
+
+        <Link href="/dashboard/attendance">
+          <Card className="p-5 flex flex-col gap-3 hover:border-primary/30 transition-colors cursor-pointer h-full">
+            <div className="flex items-center justify-between">
+              <p className="text-[13px] font-medium text-muted">My Attendance</p>
+              <span className="bg-success-soft text-success p-1.5 rounded-md">
+                <Clock size={14} strokeWidth={2} />
+              </span>
+            </div>
+            <p className="text-[13px] text-muted leading-relaxed">
+              Check in, check out, and view your attendance history.
+            </p>
+          </Card>
+        </Link>
+
+        <Link href="/dashboard/ai-assistant">
+          <Card className="p-5 flex flex-col gap-3 hover:border-primary/30 transition-colors cursor-pointer h-full">
+            <div className="flex items-center justify-between">
+              <p className="text-[13px] font-medium text-muted">AI Assistant</p>
+              <span className="bg-warning-soft text-warning p-1.5 rounded-md">
+                <SparklesIcon size={14} strokeWidth={2} />
+              </span>
+            </div>
+            <p className="text-[13px] text-muted leading-relaxed">
+              Ask questions about your expenses, attendance, and more.
+            </p>
+          </Card>
+        </Link>
+      </div>
+
+      {notifications.length > 0 ? (
+        <Card className="p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Bell size={15} strokeWidth={1.8} className="text-muted" />
+            <p className="text-[13px] font-semibold text-strong">Notifications</p>
+            {unreadCount > 0 && (
+              <span className="min-w-[20px] h-5 px-1.5 bg-danger text-white text-[11px] font-semibold rounded-full flex items-center justify-center leading-none">
+                {unreadCount}
+              </span>
+            )}
+          </div>
+          <ul className="divide-y divide-border">
+            {notifications.slice(0, 5).map((n) => (
+              <li key={n.id} className="py-2.5">
+                <p className="text-[13px] font-medium text-strong">{n.title}</p>
+                <p className="text-[12px] text-muted mt-0.5">{n.message}</p>
+                <p className="text-[11px] text-muted/60 mt-1">{timeAgo(n.createdAt)}</p>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : (
+        <Card className="p-6">
+          <div className="text-center py-4">
+            <Bell size={28} strokeWidth={1.5} className="text-muted mx-auto mb-3" />
+            <p className="text-[13px] text-muted">No notifications yet.</p>
+            <p className="text-[12px] text-muted/60 mt-1">You&apos;ll be notified when expenses are approved or rejected.</p>
+          </div>
+        </Card>
+      )}
+    </PageTransition>
+  )
+}
+
+function SparklesIcon({ size, strokeWidth }: { size: number; strokeWidth: number }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l1.88 5.77a2 2 0 0 0 1.35 1.35L21 12l-5.77 1.88a2 2 0 0 0-1.35 1.35L12 21l-1.88-5.77a2 2 0 0 0-1.35-1.35L3 12l5.77-1.88a2 2 0 0 0 1.35-1.35z"/>
+    </svg>
+  )
+}
+
+function AdminDashboard() {
+  const { user } = useAuthStore()
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard-stats'],
@@ -81,9 +188,6 @@ export default function DashboardPage() {
     queryFn:  fetchDashboardActivity,
     staleTime: 25_000,
   })
-
-  const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 
   const monthlyData = statsLoading
     ? []
@@ -113,7 +217,6 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {statsLoading ? (
           <>
@@ -160,7 +263,6 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Charts row: Line + Pie */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <Card className="p-6">
           <p className="text-[13px] font-semibold text-strong mb-5">Monthly Expenses — Last 6 Months</p>
@@ -243,7 +345,6 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Attendance bar chart */}
       <Card className="p-6 mb-6">
         <p className="text-[13px] font-semibold text-strong mb-5">Attendance — Last 7 Days</p>
         {statsLoading ? (
@@ -269,7 +370,6 @@ export default function DashboardPage() {
         )}
       </Card>
 
-      {/* Activity feed */}
       <Card className="p-6">
         <p className="text-[13px] font-semibold text-strong mb-4">Recent Activity</p>
         {activityLoading && <p className="text-[13px] text-muted">Loading...</p>}
@@ -295,4 +395,14 @@ export default function DashboardPage() {
       </Card>
     </PageTransition>
   )
+}
+
+export default function DashboardPage() {
+  const { user } = useAuthStore()
+
+  if (user?.role === 'EMPLOYEE') {
+    return <EmployeeDashboard />
+  }
+
+  return <AdminDashboard />
 }

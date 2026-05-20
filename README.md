@@ -197,6 +197,6 @@ erp-platform/
 - [ ] GitHub repo (public)
 - [ ] Live deployment URL (Vercel frontend + Railway backend)
 - [ ] `docker compose up --build` starts full stack
-- [ ] Swagger API docs at `/api/docs`
-- [ ] DB schema diagram (generated with `prisma-erd-generator`)
+- [x] Swagger API docs at `http://localhost:5000/api/docs`
+- [x] DB schema diagram — [`docs/SCHEMA_DIAGRAM.md`](docs/SCHEMA_DIAGRAM.md) (renders on GitHub)
 - [ ] 5-minute architecture explanation video (preferred)

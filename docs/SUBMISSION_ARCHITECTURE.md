@@ -6,51 +6,43 @@
 
 ## 1. System Overview
 
-ERPFlow is a multi-tenant SaaS ERP platform where multiple companies register and manage their operations through a single shared platform. Each company's data is fully isolated. The system supports four roles, three core ERP modules, an AI assistant, real-time notifications, and an analytics dashboard.
+ERPFlow is a multi-tenant SaaS ERP platform where multiple companies register and manage their operations through a single shared platform. Each company's data is fully isolated at the database row level. The system supports four roles, three core ERP modules (HR, Expenses, Inventory), an AI assistant with live data tool-calling, real-time Socket.IO notifications, and an analytics dashboard backed by Redis-cached aggregation queries.
+
+**Run the full stack with one command:**
+```bash
+docker compose up --build
+# Frontend:  http://localhost:3000
+# Backend:   http://localhost:5000
+# API Docs:  http://localhost:5000/api/docs
+```
 
 ---
 
 ## 2. High-Level Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                          INTERNET                                 │
-└────────────────────────────┬─────────────────────────────────────┘
-                             │
-              ┌──────────────▼──────────────┐
-              │        Nginx (Reverse Proxy) │  ← SSL termination
-              │         docker container     │    rate limiting
-              └──────┬───────────────┬───────┘
-                     │               │
-         ┌───────────▼───┐     ┌─────▼──────────────┐
-         │  Next.js 16   │     │   Express.js API    │
-         │  (Frontend)   │     │   (Backend)         │
-         │  Vercel       │     │   Railway · port 5000│
-         │  port 3000    │     │                     │
-         └───────────────┘     └──────┬──────────────┘
-                                      │
-              ┌───────────────────────┼────────────────┐
-              │                       │                │
-    ┌─────────▼──────┐     ┌──────────▼──────┐  ┌──────▼──────┐
-    │  PostgreSQL     │     │     Redis        │  │  Socket.IO  │
-    │  Railway        │     │   Railway/Upstash│  │  (on server)│
-    │  (primary DB)   │     │  cache + queues  │  │  WS upgrade │
-    └─────────────────┘     └─────────────────┘  └─────────────┘
-                                      │
-                             ┌────────▼────────┐
-                             │   BullMQ Workers │
-                             │  email · notif   │
-                             │  ai-categorize   │
-                             └─────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                    docker compose up --build                     │
+│                                                                  │
+│  ┌──────────────┐   ┌─────────────────┐                         │
+│  │  Next.js 16  │   │  Express.js API  │                         │
+│  │  port 3000   │   │  port 5000       │                         │
+│  │  (web)       │   │  (server)        │                         │
+│  └──────┬───────┘   └────────┬────────┘                         │
+│         │                    │  ┌──────────┐  ┌────────────┐    │
+│         │                    ├─▶│PostgreSQL│  │   Redis    │    │
+│  ┌──────▼────────────────────▼┐ │ port5432 │  │  port6379  │    │
+│  │   Nginx  (port 80)         │ └──────────┘  └────────────┘    │
+│  │   Reverse Proxy            │                                  │
+│  └────────────────────────────┘                                  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-**External services:**
+**External services used at runtime:**
 | Service | Purpose | Free Tier |
 |---|---|---|
-| Vercel | Next.js hosting | Yes |
-| Railway | Express + PostgreSQL + Redis | $5 credit/month |
 | Cloudinary | Invoice PDF/image upload | 25 GB free |
-| OpenRouter | AI model routing (OpenAI-compatible) | Free models available |
+| OpenRouter | AI model routing (OpenAI-compatible API) | Free models available |
 
 ---
 
@@ -63,21 +55,21 @@ Every tenant-scoped table has a `companyId` foreign key. The auth middleware inj
 ```
 Registration:
   Company registers → Company row created → User row created (role: COMPANY_ADMIN)
-  → JWT payload contains: { userId, companyId, role }
+  → JWT payload: { userId, companyId, role }
 
 Every authenticated request:
   JWT verified → req.user = { userId, companyId, role }
-  → Repository layer always: WHERE id = ? AND companyId = req.user.companyId
+  → Repository: WHERE id = ? AND companyId = req.user.companyId
   → Company A user physically cannot read Company B data
 ```
 
 **Why shared DB over separate DB per tenant:**
-- 90% of SaaS platforms at this stage use shared DB (Notion, Linear, Vercel)
+- Industry standard at this scale (Notion, Linear, Vercel all use this approach)
 - Zero operational overhead — no per-tenant migrations
-- Demonstrated isolation via `companyId` is the interview-relevant architecture decision
+- Row-level isolation is the interview-relevant architecture decision
 
-**Tenant isolation enforcement points:**
-1. Auth middleware — extracts companyId from JWT
+**Enforcement points (defense in depth):**
+1. Auth middleware — extracts and verifies `companyId` from JWT
 2. Repository layer — every Prisma query includes `companyId` in the `where` clause
 3. Route middleware — `requireRole()` rejects mismatched roles before service code runs
 
@@ -88,27 +80,26 @@ Every authenticated request:
 ```
 REGISTER:
   POST /api/v1/auth/register
-  Body: { companyName, slug, name, email, password }
   → Zod validates input
   → Check slug uniqueness
   → Create Company row
   → Hash password (bcrypt, 12 rounds)
   → Create User row (role: COMPANY_ADMIN)
-  → Seed 7 default expense categories for the company
+  → Seed 7 default expense categories
   → Issue accessToken (JWT, 15 min) + refreshToken (JWT, 7 days, httpOnly cookie)
   → logActivity(REGISTER)
 
 AUTHENTICATED REQUEST:
-  Header: Authorization: Bearer <accessToken>
+  Authorization: Bearer <accessToken>
   → auth.middleware.ts verifies token, attaches req.user
   → role.middleware.ts (optional) checks req.user.role
 
 TOKEN REFRESH:
-  accessToken expires → client calls POST /api/v1/auth/refresh
+  accessToken expires → POST /api/v1/auth/refresh
   → Server reads refreshToken from httpOnly cookie
   → Verifies token exists in DB and is not expired
   → Issues new accessToken + rotates refreshToken (old one deleted)
-  → This rotation means a stolen refresh token can only be used once
+  → Rotation: a stolen refresh token can only be used once
 
 LOGOUT:
   → Looks up user from token before deleting (for activity log attribution)
@@ -119,7 +110,7 @@ LOGOUT:
 
 **Role hierarchy:**
 ```
-SUPER_ADMIN     → platform-level (sees all companies, no row-level data)
+SUPER_ADMIN     → platform-level (Role enum defined; reserved for future cross-tenant admin)
 COMPANY_ADMIN   → full access within their company
 MANAGER         → can approve expenses, record stock movements, view all employees
 EMPLOYEE        → can submit expenses, view own attendance, own profile only
@@ -149,12 +140,11 @@ modules/
 ├── auth/           register · login · logout · refresh · verify-email · forgot/reset password
 ├── employee/       CRUD · attendance check-in/out · history · soft delete
 ├── expense/        CRUD · approve/reject state machine · AI categorization · PDF invoice · analytics
-├── user/           invite user · list team · change role
+├── user/           invite user · list team · change role (COMPANY_ADMIN only)
 ├── product/        CRUD · stock movements (IN/OUT/ADJUSTMENT) · low-stock count · deactivate
 ├── ai/             chat CRUD · message send · tool-call orchestration · title auto-update
 ├── dashboard/      8-query aggregation · Redis cached stats · recent activity feed
-├── notification/   list · mark-all-read · unread count
-└── super-admin/    list all companies · platform stats · suspend/activate tenant
+└── notification/   list · mark-all-read · unread count
 ```
 
 ---
@@ -173,24 +163,23 @@ modules/
   ├─ logActivity(CREATE_EXPENSE)
   │
   ├─ [Parallel] Promise.race(
-  │     openRouterClient.categorize(title, amount),   ← 4s timeout
+  │     openRouterClient.categorize(title, amount),  ← 4s timeout
   │     delay(4000)
   │  )
   │  If AI responds in time → update expense.categoryId inline
-  │  If timeout → BullMQ ai-categorization.queue adds job
-  │              Worker runs after response, updates category in background
+  │  If timeout → AI continues in background, category updates asynchronously
   │
-  └─ Response: 201 Created (with or without categoryId)
+  └─ Response: 201 Created
 
 [MANAGER]
-  PATCH /api/v1/expenses/:id/approve
+  POST /api/v1/expenses/:id/approve
   │
   ├─ requireRole(COMPANY_ADMIN, MANAGER)
-  ├─ Segregation of duties: expense.employeeId !== req.user.employeeId (can't approve own)
+  ├─ Segregation of duties: expense.employeeId !== req.user.employeeId
   ├─ expense.repository.updateStatus(id, APPROVED, companyId)
   ├─ notification.repository.create({ userId: expense.employee.userId, ... })
   ├─ getIO().to(`user:${userId}`).emit('notification:new', payload)   ← Socket.IO
-  └─ getIO().to(`company:${companyId}`).emit('dashboard:refresh')     ← all tabs refresh
+  └─ getIO().to(`company:${companyId}`).emit('dashboard:refresh')
 ```
 
 ### 6B. Stock Movement → Live Inventory Sync
@@ -205,15 +194,15 @@ modules/
   │     BEGIN
   │       SELECT product WHERE id=? AND companyId=? FOR UPDATE   ← row lock
   │       IF type=OUT AND product.quantity < qty → throw 409
-  │       UPDATE product.quantity (increment or decrement)
-  │       CREATE stock_movement row
+  │       UPDATE product.quantity
+  │       CREATE stock_movement row (immutable ledger)
   │     COMMIT
   ├─ logActivity(STOCK_MOVEMENT)
   ├─ getIO().to(`company:${companyId}`).emit('inventory:updated', { productId })
   └─ getIO().to(`company:${companyId}`).emit('dashboard:refresh')
 
-[ALL USERS in same company — other browser tabs]
-  Socket event received → queryClient.invalidateQueries(['products', productId])
+[ALL USERS in same company]
+  Socket event → queryClient.invalidateQueries(['products', productId])
   → TanStack Query refetches → UI updates without page reload
 ```
 
@@ -228,10 +217,10 @@ modules/
   ├─ Build system prompt:
   │     Company: Karachi Textile Works | Date: 2026-05-19 | Role: MANAGER
   │     Available tools:
-  │       - getExpenseTotals(period: 'month'|'week'|'year')
+  │       - getExpenseTotals(period)
   │       - getLowStockProducts()
-  │       - getEmployeeAttendance(range: number)
-  │       - getTopExpenses(limit: number, period: string)
+  │       - getEmployeeAttendance(range)
+  │       - getTopExpenses(limit, period)
   │
   ├─ Send to OpenRouter (openai/gpt-oss-120b:free)
   │
@@ -241,15 +230,15 @@ modules/
   ├─ Backend:
   │     1. Validates tool name against whitelist
   │     2. Validates arguments with Zod
-  │     3. Calls product.repository.getLowStockProducts(companyId)   ← always tenant-scoped
+  │     3. Calls product.repository.getLowStockProducts(companyId)   ← tenant-scoped
   │     4. Feeds tool result back to model
   │
   ├─ Model generates plain-English answer using tool data
   ├─ Save user message + AI response to ai_messages table
-  ├─ If first message in chat → auto-update chat title (first 50 chars)
+  ├─ If first message → auto-update chat title (first 50 chars of user message)
   └─ Response: { message: { role: 'assistant', content: '...' } }
 
-Security: The AI never writes SQL. It only calls a closed whitelist of read-only
+Security: AI never writes SQL. It only calls a closed whitelist of read-only
           repository functions. Every function is scoped by companyId from the JWT.
 ```
 
@@ -259,62 +248,32 @@ Security: The AI never writes SQL. It only calls a closed whitelist of read-only
 
 ```
 CONNECTION:
-  Client connects to ws://api-url with auth: { token: accessToken }
-  → Socket.IO handshake middleware verifies JWT
-  → socket.join(`company:${companyId}`)   ← company broadcast room
-  → socket.join(`user:${userId}`)         ← personal notification room
-  → On disconnect: Socket.IO auto-cleans room membership
+  Client connects with auth: { token: accessToken }
+  → Handshake middleware verifies JWT
+  → socket.join(`company:${companyId}`)   ← broadcast room
+  → socket.join(`user:${userId}`)         ← personal notifications
 
 ROOMS:
-  company:${companyId}  — all users in a company (inventory updates, dashboard refresh)
-  user:${userId}        — personal notifications (expense approved/rejected)
+  company:${companyId}  → inventory updates, dashboard refresh (all company users)
+  user:${userId}        → personal notifications (expense approved/rejected)
 
 EVENTS (server → client):
-  notification:new    → { id, title, body, type }   → Zustand: addNotification + incrementUnread
-  inventory:updated   → { productId }               → TanStack: invalidate ['products', productId]
-  dashboard:refresh   → {}                          → TanStack: invalidate ['dashboard-stats']
+  notification:new    → Zustand: addNotification + incrementUnread
+  inventory:updated   → TanStack: invalidate ['products', productId]
+  dashboard:refresh   → TanStack: invalidate ['dashboard-stats']
 ```
 
 ---
 
-## 8. BullMQ Queue Architecture (Bonus)
+## 8. Database Design
 
-```
-Redis (shared with cache)
-    │
-    ├── email.queue
-    │     Jobs: { type: 'PASSWORD_RESET'|'INVITE'|'VERIFY', to, payload }
-    │     Worker: calls nodemailer with SMTP credentials
-    │     Retry: 3 attempts, exponential backoff
-    │
-    ├── notification.queue
-    │     Jobs: { userId, companyId, title, body, type }
-    │     Worker: prisma.notification.create() + Socket.IO emit
-    │     Upgrade from fire-and-forget to durable delivery
-    │
-    └── ai-categorization.queue
-          Jobs: { expenseId, companyId, title, amount }
-          Worker: calls OpenRouter, updates expense.categoryId if match found
-          Replaces the Promise.race timeout hack in expense.service.ts
-```
-
-**Why BullMQ over simple async/await:**
-- Jobs survive server restarts (persisted in Redis)
-- Built-in retry with backoff — email delivery doesn't silently fail
-- Decouples slow operations (email, AI) from the HTTP response cycle
-- Redis is already deployed — zero extra infrastructure cost
-
----
-
-## 9. Database Design
-
-**14 tables across 3 domains:**
+**14 tables across 5 domains:**
 
 ```
 IDENTITY DOMAIN
-  Company       id · name · slug · isActive · createdAt
-  User          id · companyId · employeeId? · email · passwordHash · role · isVerified
-  RefreshToken  id · userId · tokenHash · expiresAt · deviceInfo · ipAddress
+  Company       id · name · slug · plan · isActive
+  User          id · companyId · email · passwordHash · role · isVerified
+  RefreshToken  id · userId · tokenHash · expiresAt · deviceInfo
 
 EMPLOYEE DOMAIN
   Employee      id · companyId · userId? · firstName · lastName · position · department
@@ -324,83 +283,90 @@ EMPLOYEE DOMAIN
 ERP DOMAIN
   Expense       id · companyId · employeeId · categoryId · amount · currency
                 status · rejectReason · invoiceUrl · approvedById
-  ExpenseCategory  id · companyId · name · color · isDefault
-  Product       id · companyId · name · sku · description · quantity · unitPrice
-                lowStockThreshold · warehouse · isActive
-  StockMovement id · productId · companyId · type · quantity · reason · createdById
+  ExpenseCategory  id · companyId · name · color
+  Product       id · companyId · name · sku · quantity · unitPrice
+                lowStockThreshold · warehouseLocation · isActive
+  StockMovement id · productId · companyId · type · quantity
+                previousQuantity · newQuantity · reason · performedById
 
 AI DOMAIN
-  AiChat        id · companyId · userId · title · createdAt
-  AiMessage     id · chatId · role · content · toolCalls? · toolResults?
+  AiChat        id · companyId · userId · title
+  AiMessage     id · chatId · role · content · metadata
 
 SYSTEM DOMAIN
-  Notification  id · userId · companyId · title · body · type · read
+  Notification  id · userId · companyId · title · message · type · isRead
   ActivityLog   id · userId · companyId · action · resourceType · resourceId
                 details · ipAddress
+  Report        id · companyId · generatedById · type · title · data
 ```
 
 **Key design decisions:**
 - Every tenant table has `companyId` (NOT NULL) — enforced at DB level, not just app level
 - Soft deletes everywhere (`isActive = false`) — never hard-delete business records
-- `StockMovement` is an immutable append-only ledger — quantity on `Product` is the cached derived value
-- `Expense.status` is a state machine: `PENDING → APPROVED | REJECTED` — no reverse transitions
-- `ActivityLog.ipAddress` enables the "device tracking" requirement from section 3.2
+- `StockMovement` is an immutable append-only ledger — `previousQuantity` + `newQuantity` stored so no replay needed
+- `Expense.status` state machine: `PENDING → APPROVED | REJECTED` — no reverse transitions
+- `ActivityLog.ipAddress` covers the "device tracking" requirement
+- `Decimal` for all money fields — Float has rounding errors (`0.1 + 0.2 ≠ 0.3`)
 
 **Indexes (critical for multi-tenant performance):**
 ```sql
--- Every list query filters by companyId first
-@@index([companyId])                   -- on Employee, Expense, Product, Notification, ActivityLog
-@@index([companyId, status])           -- on Expense (filter by status within company)
-@@index([companyId, isActive])         -- on Employee, Product (soft-delete filter)
-@@index([employeeId, date])            -- on Attendance (history queries)
-@@index([companyId, createdAt(sort: Desc)])  -- on ActivityLog (recent activity feed)
+@@index([companyId])                        -- Employee, Expense, Product, Notification, ActivityLog
+@@index([companyId, status])                -- Expense (filter pending/approved/rejected)
+@@index([employeeId, date])                 -- Attendance (history queries)
+@@index([companyId, createdAt])             -- ActivityLog (recent activity feed)
+@@index([companyId, userId, isRead])        -- Notification (unread count)
+@@unique([email, companyId])                -- User (same email allowed across companies)
+@@unique([companyId, sku])                  -- Product (SKU unique within a company)
 ```
+
+Full visual ERD: [`docs/SCHEMA_DIAGRAM.md`](SCHEMA_DIAGRAM.md)
 
 ---
 
-## 10. Frontend Architecture
+## 9. Frontend Architecture
 
 ```
 apps/web/src/
 ├── app/
 │   ├── (auth)/              ← no sidebar layout
 │   │   ├── login/
-│   │   └── register/
+│   │   ├── register/
+│   │   ├── forgot-password/
+│   │   ├── reset-password/
+│   │   └── verify-email/
 │   └── (dashboard)/         ← sidebar + header layout
-│       ├── layout.tsx        ← useSocket() + NotificationBell
-│       ├── dashboard/        ← role-aware: AdminDashboard | EmployeeDashboard
-│       ├── employees/
-│       ├── expenses/
-│       ├── inventory/
-│       ├── ai-assistant/
-│       └── settings/team/
+│       ├── layout.tsx        ← useSocket() + NotificationBell + auth guard
+│       ├── dashboard/        ← stat cards + Recharts charts + activity feed
+│       ├── employees/        ← CRUD + attendance tab
+│       ├── expenses/         ← CRUD + approve/reject + analytics charts
+│       ├── inventory/        ← CRUD + stock movements + low-stock banner
+│       ├── ai-assistant/     ← chat sidebar + message thread + tool results
+│       ├── team/             ← user invite + role management (COMPANY_ADMIN)
+│       └── profile/          ← employee self-view
 │
 ├── components/ui/           ← design system primitives
 │   Button · Input · Field · Badge · Card · Select
-│   PageHeader · EmptyState · PageTransition · StatCardSkeleton
+│   PageHeader · EmptyState · PageTransition · Skeleton
 │   NotificationBell · Toast · PasswordInput
 │
-├── store/                   ← Zustand global state
+├── store/                   ← Zustand (global, persists across navigations)
 │   auth.store.ts            — user session, accessToken, companySlug
 │   notification.store.ts    — unreadCount, notifications[]
-│   toast.store.ts           — toast queue (Zustand imperative API)
+│   toast.store.ts           — toast queue
 │
 ├── hooks/
-│   use-socket.ts            — connects Socket.IO on login, handles 3 events
+│   use-socket.ts            — connects on login, disconnects on logout, 3 event handlers
 │
-├── lib/                     ← typed API clients (one per module)
-│   axios.ts                 — base client with JWT interceptor + refresh logic
-│   employees.ts · expenses.ts · products.ts · ai.ts
-│   dashboard.ts · notifications.ts · super-admin.ts
-│
-└── proxy.ts                 ← Next.js middleware — redirects unauthenticated users
+└── lib/                     ← typed API clients (one file per module)
+    axios.ts                 — base client with JWT interceptor + auto-refresh
+    employees · expenses · products · ai · dashboard · notifications · users
 ```
 
 **State management split:**
-- `Zustand` — auth session, notifications, toasts (global, persisted across navigations)
-- `TanStack Query` — all server data (employees, expenses, products, etc.) — cached, auto-refetch
+- `Zustand` — auth session, notifications, toasts (global, persists across navigations)
+- `TanStack Query` — all server data (cached, stale-while-revalidate, auto-refetch on socket events)
 
-**Design system tokens (Tailwind v4 `@theme {}`):**
+**Design system (Tailwind v4 `@theme {}`):**
 ```css
 --color-primary      #0f766e   → bg-primary, text-primary, border-primary
 --color-canvas       #f8fafc   → page backgrounds
@@ -410,89 +376,70 @@ apps/web/src/
 --color-strong       #0f172a   → headings
 --color-danger-soft  #fef2f2   → destructive action backgrounds
 ```
-Every color token auto-generates `bg-*`, `text-*`, `border-*`, `ring-*` utility classes.
-No hardcoded hex values anywhere in the codebase.
+All color tokens auto-generate `bg-*`, `text-*`, `border-*`, `ring-*` utility classes. No hardcoded hex values in the codebase.
 
 ---
 
-## 11. Performance Optimizations
+## 10. Performance Optimizations
 
 | Optimization | Where Applied |
 |---|---|
-| Redis cache (60s TTL) | Dashboard stats — avoids 8 parallel DB queries on every page load |
-| Redis cache (30s TTL) | AI tool results — same company query within 30s hits cache not DB |
-| Parallel queries | `Promise.all()` used in dashboard (8 queries), expense analytics, low-stock filter |
-| Pagination | All list endpoints (employees, expenses, products) — `skip/take` with total count |
-| Debounced search | 300ms debounce on all search inputs — no query on every keystroke |
-| TanStack Query cache | Server state cached client-side, stale-while-revalidate pattern |
-| Row locking | `SELECT FOR UPDATE` in stock movement transaction — prevents negative inventory race condition |
-| Soft deletes | No FK constraint violations on deactivated records |
-| API rate limiting | `express-rate-limit` — 100 req/15min globally, 20 msg/10min on AI endpoint |
+| Redis cache (60s TTL) | Dashboard stats — avoids 8 parallel DB queries on every load |
+| Redis cache (30s TTL) | AI tool results — repeat company queries within 30s hit cache |
+| `Promise.all()` parallel queries | Dashboard (8 queries), expense analytics, low-stock filter |
+| Pagination everywhere | All list endpoints — `skip/take` with total count returned |
+| Debounced search (300ms) | All search inputs — no query on every keystroke |
+| TanStack Query cache | Server state cached client-side, stale-while-revalidate |
+| Row locking (`SELECT FOR UPDATE`) | Stock movement transaction — prevents negative inventory race condition |
+| API rate limiting | `express-rate-limit`: 100 req/15min global, 20 msg/10min on AI endpoint |
 
 ---
 
-## 12. Security Implementation
+## 11. Security Implementation
 
 | Requirement | Implementation |
 |---|---|
-| XSS protection | Access token in memory only (not localStorage). Refresh token in `httpOnly` cookie. |
+| XSS protection | Access token in memory only (Zustand, not localStorage). Refresh token in `httpOnly` cookie. |
 | CSRF protection | `sameSite: 'strict'` (dev) / `sameSite: 'none' + secure` (prod cross-origin) |
-| SQL injection | Prisma ORM with parameterized queries. Raw SQL uses `Prisma.sql` tagged templates. |
+| SQL injection | Prisma ORM with parameterized queries. Raw SQL uses `Prisma.sql` tagged templates only. |
 | Helmet.js | `helmet()` middleware on all Express routes |
-| Rate limiting | `express-rate-limit` — global + per-endpoint (AI) |
-| Audit logs | `ActivityLog` table records every CRUD + auth action with `userId + ipAddress` |
-| Tenant isolation | `companyId` enforced at middleware + repository layers — never trusted from request body |
+| Rate limiting | Global 100 req/15min + per-endpoint AI limit (20 msg/10min) |
+| Audit trail | `ActivityLog` table: every CRUD + auth action recorded with `userId + ipAddress` |
+| Tenant isolation | `companyId` enforced at middleware + repository — never trusted from request body |
 | Role protection | `requireRole()` middleware on all write/delete routes |
-| Refresh token rotation | Each use issues a new token and deletes the old one — stolen token usable once only |
+| Refresh token rotation | Each use issues a new token and deletes the old — stolen token usable once only |
 | Input validation | Zod schemas at controller boundary — all inputs parsed before service layer |
+| Segregation of duties | Expense submitter cannot approve/reject their own expense (enforced at service layer) |
 
 ---
 
-## 13. DevOps & Deployment
+## 12. DevOps
 
-### Docker Compose (evaluator runs one command)
+### Docker Compose (one command)
 ```bash
 docker compose up --build
-# Starts: nginx · next.js web · express server · postgresql · redis
-# Server auto-runs: prisma migrate deploy → node dist/app.js
+# nginx · next.js web · express server · postgresql · redis
+# Server on startup: prisma migrate deploy → node dist/app.js
 ```
 
-### CI/CD Pipeline (GitHub Actions)
+### GitHub Actions CI
 ```yaml
 on: push to main
 jobs:
-  - lint:  eslint + tsc --noEmit (both apps)
-  - build: next build (web) + tsc (server)
+  web:    eslint + next build
+  server: tsc --noEmit
 ```
 
-### Environment Split
+### Environment
 ```
-docker-compose.yml      ← full stack (evaluator workflow)
-docker-compose.dev.yml  ← infra only (postgres + redis for local dev)
-apps/server/.env.example
-apps/web/.env.example
+docker-compose.yml       ← full stack (evaluator workflow)
+docker-compose.dev.yml   ← infra only (postgres + redis for local dev with hot reload)
+.env.example             ← all variables documented with safe defaults
 ```
-
-### Deployment Platforms
-```
-Frontend: Vercel
-  - Import GitHub repo → set Root Directory: apps/web
-  - Build arg: NEXT_PUBLIC_API_URL=https://<railway-backend-url>
-  - Auto-deploys on every push to main
-
-Backend: Railway
-  - New project → Deploy from GitHub → select apps/server
-  - Add PostgreSQL service → DATABASE_URL auto-injected
-  - Add Redis service → REDIS_URL auto-injected
-  - Set env vars: JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, OPENROUTER_API_KEY, CLOUDINARY_*
-  - Auto-deploys on every push to main
-```
-
-**Updating after deploy:** Both platforms watch the `main` branch. Push to GitHub → Railway redeploys backend in ~2–3 min, Vercel redeploys frontend in ~1–2 min. Zero downtime for Vercel (atomic swap). Railway does a rolling restart.
 
 ---
 
-## 14. ERP Module Workflows
+## 13. ERP Module Workflows
 
 ### Expense Lifecycle (State Machine)
 ```
@@ -514,7 +461,7 @@ Rules:
   - Only MANAGER / COMPANY_ADMIN can approve or reject
   - Once APPROVED or REJECTED, status cannot revert to PENDING
   - Rejection requires a written reason (persisted to expense.rejectReason)
-  - Approval triggers a Socket.IO notification to the submitter
+  - Approval triggers a real-time Socket.IO notification to the submitter
 ```
 
 ### Inventory Stock Movement
@@ -527,27 +474,25 @@ Stock OUT (-qty)  → Sale, shipment, usage
 ADJUSTMENT (±qty) → Audit correction, write-off
 
 Rules:
-  - OUT that would result in quantity < 0 → blocked with 409 (row-locked transaction)
-  - Movement on deactivated product → blocked with 409
-  - Every movement creates an immutable StockMovement row (audit ledger)
-  - Low stock alert: quantity ≤ lowStockThreshold → banner on inventory page
+  - OUT that would result in quantity < 0 → blocked (409, row-locked transaction)
+  - Movement on deactivated product → blocked (409)
+  - Every movement creates an immutable StockMovement row (full audit ledger)
+  - Low stock: quantity ≤ lowStockThreshold → banner on inventory page
   - Real-time: all company users see quantity update live via Socket.IO
 ```
 
 ### Employee Attendance
 ```
-Employee check-in  → Attendance row created (status: PRESENT, checkIn: now)
-Employee check-out → Attendance row updated (checkOut: now)
-If check-in time > 09:30 (company-configurable) → status: LATE
-If no check-in for today → not shown (not created as ABSENT automatically)
-
-Date key uses Asia/Karachi timezone (configurable via APP_TIMEZONE env var)
-— prevents midnight UTC rollover from creating wrong-date attendance records
+Check-in  → Attendance row created (status: PRESENT, checkIn: now)
+Check-out → Attendance row updated (checkOut: now)
+If check-in > 09:30 → status: LATE
+Date key uses Asia/Karachi timezone — prevents UTC midnight rollover
+  from creating wrong-date records
 ```
 
 ---
 
-## 15. Module Dependency Map
+## 14. Module Dependency Map
 
 ```
                     ┌─────────────────┐

@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
@@ -50,6 +51,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, logout } = useAuthStore()
   const resetNotifications = useNotificationStore((s) => s.reset)
   useSocket()
+
+  useEffect(() => {
+    if (!user) router.replace('/login')
+  }, [user, router])
 
   async function handleLogout() {
     try {

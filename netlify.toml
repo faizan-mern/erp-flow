@@ -3,17 +3,5 @@
   command = "npm run build"
   publish = ".next"
 
-[[redirects]]
-  from = "/dashboard"
-  to = "/.netlify/functions/___netlify-handler"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/dashboard/*"
-  to = "/.netlify/functions/___netlify-handler"
-  status = 200
-  force = true
-
 [[plugins]]
   package = "@netlify/plugin-nextjs"

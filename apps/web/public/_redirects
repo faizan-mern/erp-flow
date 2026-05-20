@@ -1,5 +1,0 @@
-# Override any generated redirect rules for dashboard routes.
-# The plugin is generating a 307 /dashboard/* -> /login redirect at the edge.
-# These 200 rewrites route dashboard traffic through the Next.js handler instead.
-/dashboard       /.netlify/functions/___netlify-handler    200
-/dashboard/*     /.netlify/functions/___netlify-handler    200

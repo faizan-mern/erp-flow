@@ -15,6 +15,7 @@ import productRoutes from './modules/product/product.routes'
 import aiRoutes from './modules/ai/ai.routes'
 import dashboardRoutes from './modules/dashboard/dashboard.routes'
 import notificationRoutes from './modules/notification/notification.routes'
+import superAdminRoutes from './modules/super-admin/super-admin.routes'
 import { errorHandler } from './middleware/error.middleware'
 import { initSocket } from './lib/socket'
 import { swaggerSpec } from './lib/swagger'
@@ -49,6 +50,7 @@ v1.use('/products', productRoutes)
 v1.use('/ai', aiRoutes)
 v1.use('/dashboard', dashboardRoutes)
 v1.use('/notifications', notificationRoutes)
+v1.use('/super-admin', superAdminRoutes)
 app.use('/api/v1', v1)
 
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))

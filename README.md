@@ -1,6 +1,6 @@
 # ERPFlow — Enterprise ERP Platform
 
-Multi-tenant SaaS ERP platform built for the Cyberify hiring assessment.
+Multi-tenant SaaS ERP platform built for the Cyberify Senior Full Stack Developer assessment.
 
 ---
 
@@ -8,23 +8,23 @@ Multi-tenant SaaS ERP platform built for the Cyberify hiring assessment.
 
 | Layer | Technology |
 |---|---|
-| Frontend | Next.js 16, TypeScript, Tailwind CSS v4, Zustand, TanStack Query |
+| Frontend | Next.js 16, TypeScript, Tailwind CSS v4, Zustand, TanStack Query, Framer Motion |
 | Backend | Node.js, Express.js, TypeScript, Prisma ORM |
 | Database | PostgreSQL (shared DB, `companyId` row-level isolation) |
 | Cache | Redis |
 | Real-time | Socket.IO (company-scoped rooms) |
 | Auth | JWT access tokens (15 min) + refresh tokens (7 days, httpOnly cookie) |
-| AI | OpenRouter — real integration, configurable model, live DB data in prompt |
+| AI | OpenRouter — real integration, configurable model, live DB tool-calling |
 | File uploads | Cloudinary (expense invoices) |
-| Deployment | Vercel (frontend) + Railway (backend + DB + Redis) |
+| Infrastructure | Docker Compose, Nginx reverse proxy, GitHub Actions CI |
 
 ---
 
 ## Running the Project
 
-### Option A — Evaluator / Full Stack (single command)
+### Option A — Full Stack (single command)
 
-This starts everything: PostgreSQL, Redis, Express backend, Next.js frontend, and Nginx.
+Starts everything: PostgreSQL, Redis, Express backend, Next.js frontend, and Nginx.
 
 ```bash
 docker compose up --build
@@ -34,30 +34,31 @@ docker compose up --build
 |---|---|
 | Frontend | http://localhost:3000 |
 | Backend API | http://localhost:5000 |
+| API Docs (Swagger) | http://localhost:5000/api/docs |
 | Health check | http://localhost:5000/health |
 
-> **First run** pulls Docker images and compiles both apps — allow ~3 minutes.
+> **First run** pulls Docker images and compiles both apps — allow 3–5 minutes.
 >
-> **Credentials** — the stack has safe defaults baked in and works without a `.env` file.
-> Copy `.env.example` → `.env` to use your own secrets or set `OPENROUTER_API_KEY` for the AI module.
+> The stack works with no `.env` file — safe defaults are baked into `docker-compose.yml`.
+> Copy `.env.example` → `.env` to supply your own secrets (required for AI and file uploads).
 
-> **Note on migrations** — the server runs `prisma migrate deploy` in production mode.
+> **Note on migrations** — the server runs `prisma migrate deploy` automatically on startup.
 > If you see DB connection errors on first start, wait for the postgres healthcheck to pass
-> (Docker depends_on is set to `service_healthy`) then the server container will start.
+> then the server container will retry automatically.
 
 ---
 
 ### Option B — Developer Mode (hot reload)
 
-Docker is used only for PostgreSQL and Redis. Apps run directly on your machine with `ts-node-dev` so you get instant hot reload.
+Docker is used only for PostgreSQL and Redis. Both apps run directly on your machine.
 
-**Step 1 — Install all packages from the repo root**
+**Step 1 — Install dependencies**
 
 ```bash
 npm install
 ```
 
-**Step 2 — Start infrastructure (postgres + redis only)**
+**Step 2 — Start infrastructure (postgres + redis)**
 
 ```bash
 npm run infra:up
@@ -69,7 +70,7 @@ npm run infra:up
 npm run db:migrate
 ```
 
-**Step 4 — Start the apps (two terminals)**
+**Step 4 — Start both apps in two terminals**
 
 ```bash
 # Terminal 1
@@ -85,9 +86,6 @@ npm run dev:web
 | Backend | http://localhost:5000/health |
 | Prisma Studio | `npm run db:studio` |
 
-> Developer mode does not use `docker compose up --build`. Docker is intentionally
-> separated from `npm run dev` so that infra startup is independent of app startup.
-
 ---
 
 ## Environment Variables
@@ -101,60 +99,82 @@ Copy `.env.example` to `.env` in the repo root.
 | `POSTGRES_DB` | No | `erp_db` | Database name |
 | `JWT_ACCESS_SECRET` | Yes | dev default | Sign access tokens |
 | `JWT_REFRESH_SECRET` | Yes | dev default | Sign refresh tokens |
-| `OPENROUTER_API_KEY` | Yes (AI) | — | Get free key at openrouter.ai |
+| `OPENROUTER_API_KEY` | Yes (AI module) | — | Free key at openrouter.ai |
 | `OPENROUTER_MODEL` | No | `qwen/qwen3-coder:free` | Any OpenRouter model slug |
 | `CLOUDINARY_CLOUD_NAME` | Yes (uploads) | — | From cloudinary.com dashboard |
 | `CLOUDINARY_API_KEY` | Yes (uploads) | — | From cloudinary.com dashboard |
 | `CLOUDINARY_API_SECRET` | Yes (uploads) | — | From cloudinary.com dashboard |
-| `NEXT_PUBLIC_API_URL` | No | `http://localhost:5000` | Backend URL seen by browser |
+| `NEXT_PUBLIC_API_URL` | No | `http://localhost:5000` | Backend URL seen by the browser |
 
-> JWT secrets have safe dev defaults in `docker-compose.yml`. Change them for production.
+> JWT secrets have safe dev defaults in `docker-compose.yml`. Always set unique values in production.
+
+---
+
+## Creating a Super Admin
+
+A platform-level Super Admin can view all companies, suspend tenants, and see platform-wide stats.
+Run this once after the stack is up:
+
+```bash
+npm run create-super-admin -w apps/server -- admin@platform.com YourPassword123
+```
+
+Then log in at `http://localhost:3000/login` using the **Platform Admin** tab.
 
 ---
 
 ## Architecture
 
 ### Multi-Tenancy
-Shared PostgreSQL database. Every table has `companyId`. Every repository query includes
-`WHERE companyId = ?` extracted from the JWT. Company A cannot read Company B's data —
-enforced at the query layer, not just middleware.
+
+Shared PostgreSQL database. Every tenant-scoped table has a `companyId` column. Every repository
+query includes `WHERE companyId = ?` extracted from the verified JWT. Company A cannot access
+Company B data — enforced at the query layer, not just middleware.
 
 ### Backend Module Structure
+
 ```
 server/src/modules/<feature>/
-  <feature>.routes.ts      → URL mapping
+  <feature>.routes.ts      → URL mapping + middleware
   <feature>.controller.ts  → reads request, calls service, sends response
-  <feature>.service.ts     → business rules, state machine, AI calls
+  <feature>.service.ts     → business rules, orchestration
   <feature>.repository.ts  → only layer that calls Prisma
   <feature>.validator.ts   → Zod schemas for request validation
 ```
 
-### Module Priority (as clarified by Cyberify)
-Employee → Expense → Inventory
-
 ### Roles
-Three roles per company: `COMPANY_ADMIN`, `MANAGER`, `EMPLOYEE`. See [docs/ROLES.md](docs/ROLES.md) for the exact permissions and how they are enforced on backend + frontend.
 
-### Real-Time Priority
-Live notifications → inventory updates → dashboard sync → activity tracking → team messaging
+Four roles are implemented:
 
-### AI Integration
-Real OpenRouter integration. The AI service:
-1. Fetches live data from DB via repositories (employees, expenses, inventory)
-2. Injects it into a structured system prompt with company context
-3. Sends to the configured model (default: `qwen/qwen3-coder:free`, free tier)
-4. If the model returns SQL — executes it safely (SELECT only, no writes)
-5. Returns data table + plain-English explanation to the frontend
-6. Persists the conversation to `ai_messages` table
+| Role | Scope | How created |
+|---|---|---|
+| `SUPER_ADMIN` | Platform-wide | Seed script (`npm run create-super-admin`) |
+| `COMPANY_ADMIN` | Own company — full access | Auto-assigned on registration |
+| `MANAGER` | Own company — approve expenses, manage stock | Invited by admin from Team page |
+| `EMPLOYEE` | Own company — own data only | Invited by admin from Team page |
 
-No OpenAI billing required. No mocked responses.
+See [docs/ROLES.md](docs/ROLES.md) for the full permission breakdown.
 
 ### Authentication Flow
+
 ```
-Login  → access token (15 min, memory only) + refresh token (7 days, httpOnly cookie)
-Refresh → old refresh token deleted, new pair issued (rotation)
+Login  → access token (15 min, stored in memory) + refresh token (7 days, httpOnly cookie)
+Refresh → old refresh token deleted, new pair issued (rotation prevents replay attacks)
 Logout → refresh token deleted from DB, cookie cleared
 ```
+
+### AI Integration
+
+Real OpenRouter integration — no mocked responses.
+
+1. User sends a natural language question
+2. Backend builds a system prompt with live company context (role, date, company name)
+3. Model calls whitelisted read-only tool functions (`getLowStockProducts`, `getExpenseTotals`, etc.)
+4. Backend validates tool call, executes against tenant-scoped repository, feeds result back to model
+5. Model generates a plain-English answer
+6. Conversation saved to `ai_messages` table
+
+The AI never writes SQL. It only calls a closed set of parameterized repository functions scoped by `companyId`.
 
 ---
 
@@ -165,38 +185,47 @@ erp-platform/
 ├── apps/
 │   ├── web/          Next.js frontend
 │   └── server/       Express backend
-├── docs/             Architecture, database schema, progress tracker
-├── nginx/            Reverse proxy config (Docker full-stack mode)
-├── docker-compose.yml        Full stack — evaluator command
-├── docker-compose.dev.yml    Infra only — developer command
-├── docker-compose.prod.yml   Explicit production reference
-└── .env.example      All required env vars documented
+├── docs/             Architecture docs, database schema, role reference
+├── nginx/            Reverse proxy config
+├── docker-compose.yml        Full stack (evaluator workflow)
+├── docker-compose.dev.yml    Infra only (postgres + redis for local dev)
+└── .env.example      All variables documented with defaults
 ```
 
 ---
 
-## npm Scripts (from repo root)
+## npm Scripts
 
 | Script | What it does |
 |---|---|
-| `npm run dev:web` | Start Next.js frontend (hot reload) |
-| `npm run dev:server` | Start Express backend (ts-node-dev) |
-| `npm run build:web` | Production build of frontend |
+| `npm run dev:web` | Start Next.js frontend with hot reload |
+| `npm run dev:server` | Start Express backend with hot reload |
+| `npm run build:web` | Production Next.js build |
 | `npm run build:server` | Compile TypeScript backend |
 | `npm run lint:web` | ESLint on frontend |
 | `npm run db:migrate` | Run Prisma migrations |
 | `npm run db:studio` | Open Prisma Studio |
 | `npm run db:seed` | Seed default data |
-| `npm run infra:up` | Start postgres + redis (dev only) |
+| `npm run infra:up` | Start postgres + redis (dev mode) |
 | `npm run infra:down` | Stop postgres + redis |
+| `npm test -w apps/server` | Run Jest unit tests |
 
 ---
 
-## Submission Checklist
+## Documentation
 
-- [ ] GitHub repo (public)
-- [ ] Live deployment URL (Vercel frontend + Railway backend)
-- [ ] `docker compose up --build` starts full stack
-- [x] Swagger API docs at `http://localhost:5000/api/docs`
-- [x] DB schema diagram — [`docs/SCHEMA_DIAGRAM.md`](docs/SCHEMA_DIAGRAM.md) (renders on GitHub)
-- [ ] 5-minute architecture explanation video (preferred)
+| Document | Description |
+|---|---|
+| [docs/SUBMISSION_ARCHITECTURE.md](docs/SUBMISSION_ARCHITECTURE.md) | Full system design, data flows, security |
+| [docs/SCHEMA_DIAGRAM.md](docs/SCHEMA_DIAGRAM.md) | Database ERD (renders on GitHub) |
+| [docs/ROLES.md](docs/ROLES.md) | Role permissions and enforcement |
+| [docs/DATABASE.md](docs/DATABASE.md) | Table-by-table schema reference |
+| `http://localhost:5000/api/docs` | Swagger UI (requires stack running) |
+
+---
+
+## Deployment Note
+
+A cloud deployment was attempted on Railway (backend) + Vercel (frontend). The Railway free-tier
+credit ran out mid-deployment. The full stack is fully functional locally via `docker compose up --build`
+— all five services start from one command with no manual configuration required.

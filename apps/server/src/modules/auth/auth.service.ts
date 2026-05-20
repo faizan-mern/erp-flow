@@ -65,6 +65,10 @@ export async function login(input: LoginInput, deviceInfo?: string, ipAddress?: 
   const company = await repo.findCompanyBySlug(input.companySlug)
   if (!company) fail('Company not found', 404)
 
+  if (!company.isActive && company.slug !== '__platform__') {
+    fail('This company account has been suspended. Contact platform support.', 403)
+  }
+
   const user = await repo.findUserByEmail(input.email, company.id)
   if (!user) fail('Invalid email or password', 401)
 

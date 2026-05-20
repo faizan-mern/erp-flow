@@ -110,7 +110,7 @@ LOGOUT:
 
 **Role hierarchy:**
 ```
-SUPER_ADMIN     → platform-level (Role enum defined; reserved for future cross-tenant admin)
+SUPER_ADMIN     → platform-level: view all tenants, suspend/activate companies, platform stats
 COMPANY_ADMIN   → full access within their company
 MANAGER         → can approve expenses, record stock movements, view all employees
 EMPLOYEE        → can submit expenses, view own attendance, own profile only
@@ -144,7 +144,8 @@ modules/
 ├── product/        CRUD · stock movements (IN/OUT/ADJUSTMENT) · low-stock count · deactivate
 ├── ai/             chat CRUD · message send · tool-call orchestration · title auto-update
 ├── dashboard/      8-query aggregation · Redis cached stats · recent activity feed
-└── notification/   list · mark-all-read · unread count
+├── notification/   list · mark-all-read · unread count
+└── super-admin/    list all companies · platform stats · suspend/activate tenants
 ```
 
 ---

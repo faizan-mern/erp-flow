@@ -11,7 +11,10 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:seed": "ts-node-dev prisma/seed.ts",
-    "smoke": "ts-node-dev --transpile-only src/scripts/smoke-test.ts"
+    "smoke": "ts-node-dev --transpile-only src/scripts/smoke-test.ts",
+    "create-super-admin": "ts-node-dev --transpile-only prisma/seed-superadmin.ts",
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -40,6 +43,7 @@
     "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
+    "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/morgan": "^1.9.9",
     "@types/multer": "^2.1.0",
@@ -47,6 +51,8 @@
     "@types/nodemailer": "^6.4.17",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.10",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.7.2"
   }

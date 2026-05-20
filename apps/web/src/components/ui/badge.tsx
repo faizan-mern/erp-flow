@@ -1,4 +1,4 @@
-type BadgeVariant = 'active' | 'inactive' | 'pending' | 'approved' | 'rejected'
+type BadgeVariant = 'active' | 'inactive' | 'pending' | 'approved' | 'rejected' | 'success' | 'danger'
 
 const styles: Record<BadgeVariant, string> = {
   active:   'bg-success-soft text-success',
@@ -6,6 +6,8 @@ const styles: Record<BadgeVariant, string> = {
   pending:  'bg-warning-soft text-warning',
   approved: 'bg-success-soft text-success',
   rejected: 'bg-danger-soft text-danger',
+  success:  'bg-success-soft text-success',
+  danger:   'bg-danger-soft text-danger',
 }
 
 interface BadgeProps {

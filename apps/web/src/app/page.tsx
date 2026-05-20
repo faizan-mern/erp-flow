@@ -12,5 +12,9 @@ export default function RootPage() {
     router.replace(user ? '/dashboard' : '/login')
   }, [user, router])
 
-  return null
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-canvas">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" />
+    </div>
+  )
 }

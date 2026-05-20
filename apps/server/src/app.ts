@@ -17,6 +17,8 @@ import dashboardRoutes from './modules/dashboard/dashboard.routes'
 import notificationRoutes from './modules/notification/notification.routes'
 import { errorHandler } from './middleware/error.middleware'
 import { initSocket } from './lib/socket'
+import { swaggerSpec } from './lib/swagger'
+import swaggerUi from 'swagger-ui-express'
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -49,6 +51,8 @@ v1.use('/dashboard', dashboardRoutes)
 v1.use('/notifications', notificationRoutes)
 app.use('/api/v1', v1)
 
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
+app.get('/api/docs-json', (_req, res) => res.json(swaggerSpec))
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
 
 app.use(errorHandler)

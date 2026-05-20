@@ -28,21 +28,197 @@ function uploadInvoiceMw(req: Request, res: Response, next: NextFunction) {
 
 router.use(authenticate)
 
-// Categories + analytics first so they don't collide with /:id
+/**
+ * @openapi
+ * /expenses/categories:
+ *   get:
+ *     tags: [Expenses]
+ *     summary: List expense categories for the company
+ *     responses:
+ *       200:
+ *         description: Array of expense categories
+ */
 router.get('/categories', h(controller.categories))
+
+/**
+ * @openapi
+ * /expenses/analytics/monthly:
+ *   get:
+ *     tags: [Expenses]
+ *     summary: Monthly expense totals by category (admin/manager only)
+ *     parameters:
+ *       - in: query
+ *         name: year
+ *         schema: { type: integer, example: 2025 }
+ *     responses:
+ *       200:
+ *         description: Monthly breakdown
+ *       403:
+ *         description: Insufficient role
+ */
 router.get('/analytics/monthly', requireRole('COMPANY_ADMIN', 'MANAGER'), h(controller.analytics))
 
-// File upload (returns a Cloudinary URL the client puts into invoiceUrl when submitting)
+/**
+ * @openapi
+ * /expenses/upload-invoice:
+ *   post:
+ *     tags: [Expenses]
+ *     summary: Upload an invoice file to Cloudinary
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: PDF or image, max 10 MB
+ *     responses:
+ *       200:
+ *         description: Cloudinary URL of the uploaded file
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 url: { type: string, format: uri }
+ *       400:
+ *         description: File too large or invalid format
+ */
 router.post('/upload-invoice', uploadInvoiceMw, h(controller.uploadInvoiceFile))
 
-// CRUD
-router.get('/',       h(controller.list))
-router.get('/:id',    h(controller.getOne))
-router.post('/',      h(controller.create))
-router.put('/:id',    h(controller.update))
+/**
+ * @openapi
+ * /expenses:
+ *   get:
+ *     tags: [Expenses]
+ *     summary: List expenses (employees see own; managers/admins see all)
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema: { type: string, enum: [PENDING, APPROVED, REJECTED] }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20 }
+ *     responses:
+ *       200:
+ *         description: Paginated expense list
+ */
+router.get('/', h(controller.list))
 
-// Approval workflow — managers and admins only
+/**
+ * @openapi
+ * /expenses/{id}:
+ *   get:
+ *     tags: [Expenses]
+ *     summary: Get a single expense
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Expense record
+ *       404:
+ *         description: Not found
+ */
+router.get('/:id', h(controller.getOne))
+
+/**
+ * @openapi
+ * /expenses:
+ *   post:
+ *     tags: [Expenses]
+ *     summary: Submit a new expense
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title, amount, expenseDate]
+ *             properties:
+ *               title:       { type: string }
+ *               amount:      { type: number }
+ *               currency:    { type: string, default: PKR }
+ *               categoryId:  { type: string, format: uuid }
+ *               invoiceUrl:  { type: string, format: uri }
+ *               notes:       { type: string }
+ *               expenseDate: { type: string, format: date }
+ *     responses:
+ *       201:
+ *         description: Expense created with PENDING status
+ */
+router.post('/', h(controller.create))
+
+/**
+ * @openapi
+ * /expenses/{id}:
+ *   put:
+ *     tags: [Expenses]
+ *     summary: Update a PENDING expense
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Updated expense
+ *       403:
+ *         description: Can only edit own pending expenses
+ */
+router.put('/:id', h(controller.update))
+
+/**
+ * @openapi
+ * /expenses/{id}/approve:
+ *   post:
+ *     tags: [Expenses]
+ *     summary: Approve an expense (admin/manager only)
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Expense approved
+ *       403:
+ *         description: Insufficient role
+ */
 router.post('/:id/approve', requireRole('COMPANY_ADMIN', 'MANAGER'), h(controller.approve))
-router.post('/:id/reject',  requireRole('COMPANY_ADMIN', 'MANAGER'), h(controller.reject))
+
+/**
+ * @openapi
+ * /expenses/{id}/reject:
+ *   post:
+ *     tags: [Expenses]
+ *     summary: Reject an expense with a reason (admin/manager only)
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason: { type: string }
+ *     responses:
+ *       200:
+ *         description: Expense rejected
+ *       403:
+ *         description: Insufficient role
+ */
+router.post('/:id/reject', requireRole('COMPANY_ADMIN', 'MANAGER'), h(controller.reject))
 
 export default router

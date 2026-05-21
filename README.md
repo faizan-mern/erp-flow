@@ -24,7 +24,7 @@ Multi-tenant SaaS ERP platform built for the Cyberify Senior Full Stack Develope
 
 ### Option A — Full Stack (single command)
 
-Starts everything: PostgreSQL, Redis, Express backend, Next.js frontend, and Nginx.
+Starts everything: PostgreSQL, Redis, Express backend, Next.js frontend, and Nginx reverse proxy.
 
 ```bash
 docker compose up --build

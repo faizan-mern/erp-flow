@@ -12,7 +12,7 @@
     "db:studio": "prisma studio",
     "db:seed": "ts-node-dev prisma/seed.ts",
     "smoke": "ts-node-dev --transpile-only src/scripts/smoke-test.ts",
-    "create-super-admin": "ts-node-dev --transpile-only prisma/seed-superadmin.ts",
+    "create-super-admin": "ts-node-dev --transpile-only src/scripts/seed-superadmin.ts",
     "test": "jest",
     "test:watch": "jest --watch"
   },

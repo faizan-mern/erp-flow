@@ -113,7 +113,14 @@ Copy `.env.example` to `.env` in the repo root.
 ## Creating a Super Admin
 
 A platform-level Super Admin can view all companies, suspend tenants, and see platform-wide stats.
-Run this once after the stack is up:
+
+**Option A — Docker stack (recommended after `docker compose up --build`)**
+
+```bash
+docker exec erp_server node dist/scripts/seed-superadmin.js admin@platform.com YourPassword123
+```
+
+**Option B — Developer mode (after `npm run infra:up`)**
 
 ```bash
 npm run create-super-admin -w apps/server -- admin@platform.com YourPassword123
@@ -226,6 +233,18 @@ erp-platform/
 
 ## Deployment Note
 
-A cloud deployment was attempted on Railway (backend) + Vercel (frontend). The Railway free-tier
-credit ran out mid-deployment. The full stack is fully functional locally via `docker compose up --build`
-— all five services start from one command with no manual configuration required.
+A cloud deployment was attempted on Railway (backend) + Vercel (frontend). Railway's free-tier
+credit was exhausted during the deployment process — the platform no longer offers a persistent
+free tier for always-on services. Vercel deployment of the frontend was successful but requires
+the Railway backend URL to be set as a build argument, which could not be completed without a
+live backend.
+
+The full stack runs locally from a single command with no manual configuration required:
+
+```bash
+docker compose up --build
+```
+
+All five services (PostgreSQL, Redis, Express backend, Next.js frontend, Nginx) start from
+this one command. The Docker setup was specifically designed so evaluators do not need any
+cloud accounts or paid services to run the application.

@@ -86,7 +86,7 @@ REGISTER:
   → Hash password (bcrypt, 12 rounds)
   → Create User row (role: COMPANY_ADMIN)
   → Seed 7 default expense categories
-  → Issue accessToken (JWT, 15 min) + refreshToken (JWT, 7 days, httpOnly cookie)
+  → Issue accessToken (JWT, 2 hr) + refreshToken (JWT, 7 days, httpOnly cookie)
   → logActivity(REGISTER)
 
 AUTHENTICATED REQUEST:
@@ -218,10 +218,9 @@ modules/
   ├─ Build system prompt:
   │     Company: Karachi Textile Works | Date: 2026-05-19 | Role: MANAGER
   │     Available tools:
-  │       - getExpenseTotals(period)
-  │       - getLowStockProducts()
-  │       - getEmployeeAttendance(range)
-  │       - getTopExpenses(limit, period)
+  │       - getEmployeeCount()         ← total active employees
+  │       - getLowStockCount()         ← products below threshold
+  │       - getPendingExpenseTotals()  ← count + sum of PENDING expenses
   │
   ├─ Send to OpenRouter (openai/gpt-oss-120b:free)
   │
@@ -359,7 +358,7 @@ apps/web/src/
 │   use-socket.ts            — connects on login, disconnects on logout, 3 event handlers
 │
 └── lib/                     ← typed API clients (one file per module)
-    axios.ts                 — base client with JWT interceptor + auto-refresh
+    api.ts                   — base axios client with JWT interceptor + auto-refresh
     employees · expenses · products · ai · dashboard · notifications · users
 ```
 

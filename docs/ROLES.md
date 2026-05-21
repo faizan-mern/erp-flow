@@ -120,6 +120,10 @@ frontend shows.
 A `User` row holds the auth identity and role. An `Employee` row holds the HR record
 (name, position, department, salary). They are linked one-to-one by `Employee.userId`.
 
-An admin freshly registered has a `User` row but no `Employee` row. To submit expenses,
-they must create their own Employee record from the Employees page, then the system links
-the two automatically.
+On registration, both rows are created together in a single transaction — the Company Admin
+immediately has a linked Employee record and can submit expenses, check attendance, and use
+all employee-facing features without any extra setup.
+
+When an admin invites a team member from the Team page, a `User` + `Employee` row are also
+created in one transaction. There is no state where a login user exists without a linked
+employee record.

@@ -88,6 +88,33 @@ npm run dev:web
 
 ---
 
+## First Steps After Startup
+
+Once the stack is running at `http://localhost:3000`:
+
+**1. Register a company account**
+- Click **Register** on the login page
+- Pick any company name and a short slug (e.g. name: `Acme Corp`, slug: `acme`)
+- Your account is created as **Company Admin** and auto-verified — no email required
+
+**2. Seed the super admin** (separate platform-level account)
+```bash
+docker exec erp_server node dist/scripts/seed-superadmin.js admin@platform.com Admin123!
+```
+Log in via the **Platform Admin** tab on the login page.
+
+**3. Create team members to test roles**
+- Go to **Team** in the sidebar → Invite User
+- Create a **Manager** (can approve expenses, manage inventory)
+- Create an **Employee** (sees only their own data, can submit expenses and check in)
+- Invited users can log in immediately — no email verification step
+
+**4. Test the AI Assistant**
+- Requires `OPENROUTER_API_KEY` set in `.env` → `docker compose up --build`
+- Ask things like: *"How many employees do we have?"*, *"What's the total value of pending expenses?"*, *"Are any products low on stock?"*
+
+---
+
 ## Environment Variables
 
 Copy `.env.example` to `.env` in the repo root.
@@ -176,12 +203,12 @@ Real OpenRouter integration — no mocked responses.
 
 1. User sends a natural language question
 2. Backend builds a system prompt with live company context (role, date, company name)
-3. Model calls whitelisted read-only tool functions (`getLowStockProducts`, `getExpenseTotals`, etc.)
-4. Backend validates tool call, executes against tenant-scoped repository, feeds result back to model
+3. Model calls whitelisted read-only tool functions: `getEmployeeCount`, `getLowStockCount`, `getPendingExpenseTotals`
+4. Backend executes the tool against tenant-scoped repository, feeds result back to model
 5. Model generates a plain-English answer
 6. Conversation saved to `ai_messages` table
 
-The AI never writes SQL. It only calls a closed set of parameterized repository functions scoped by `companyId`.
+The AI never writes SQL. Every tool call is scoped by `companyId` from the verified JWT.
 
 ---
 

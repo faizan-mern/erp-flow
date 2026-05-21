@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
+import axios from 'axios'
 import { useAuthStore } from '@/store/auth.store'
 import { useNotificationStore } from '@/store/notification.store'
 import api from '@/lib/api'
@@ -44,17 +45,32 @@ const NAV_LINKS: NavLink[] = [
   { href: '/dashboard/ai-assistant', label: 'AI Assistant', icon: Sparkles },
 ]
 
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const queryClient = useQueryClient()
-  const { user, logout } = useAuthStore()
+  const { user, logout, accessToken, setAccessToken } = useAuthStore()
   const resetNotifications = useNotificationStore((s) => s.reset)
+  // True only on the initial mount when user is in localStorage but token is gone (hard refresh).
+  const [hydrating, setHydrating] = useState(!accessToken && !!user)
   useSocket()
 
   useEffect(() => {
-    if (!user) router.replace('/login')
-  }, [user, router])
+    if (!user) {
+      router.replace('/login')
+      return
+    }
+    if (!accessToken) {
+      axios
+        .post(`${BASE_URL}/api/v1/auth/refresh`, {}, { withCredentials: true })
+        .then((res) => setAccessToken(res.data.data.accessToken))
+        .catch(() => { logout(); router.replace('/login') })
+        .finally(() => setHydrating(false))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handleLogout() {
     try {
@@ -169,7 +185,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Page content */}
         <main className="flex-1 overflow-auto p-6">
-          {children}
+          {hydrating ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : children}
         </main>
       </div>
 

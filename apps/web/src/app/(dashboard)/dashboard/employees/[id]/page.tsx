@@ -71,9 +71,6 @@ export default function EditEmployeePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] })
       queryClient.invalidateQueries({ queryKey: ['employee', id] })
-      // Clear local overrides so the form re-syncs with fresh server data.
-      // Without this, the user keeps seeing whatever they just typed even if
-      // the server applied a transform (trim, etc).
       setOverrides({})
       toast.success('Employee updated')
     },
@@ -82,6 +79,7 @@ export default function EditEmployeePage() {
       setError(message)
     },
   })
+
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setOverrides((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -245,7 +243,7 @@ export default function EditEmployeePage() {
                     <p className="text-[12px] text-muted leading-relaxed mb-3">
                       This employee doesn&apos;t have a login account yet.
                     </p>
-                    {canInvite && (
+                    {canInvite && employee.isActive && (
                       <Link
                         href={`/dashboard/team?invite=1&firstName=${encodeURIComponent(employee.firstName)}&lastName=${encodeURIComponent(employee.lastName)}`}
                         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] font-medium text-primary border border-primary/30 hover:bg-primary-soft transition-colors"

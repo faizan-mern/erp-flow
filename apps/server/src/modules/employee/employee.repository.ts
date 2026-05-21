@@ -77,6 +77,7 @@ export async function updateEmployee(id: string, companyId: string, data: Update
       ...(data.salary !== undefined && { salary: data.salary }),
       ...(data.phone !== undefined && { phone: data.phone }),
       ...(data.address !== undefined && { address: data.address }),
+      ...(data.isActive !== undefined && { isActive: data.isActive }),
     },
   })
   return findEmployeeById(id, companyId)

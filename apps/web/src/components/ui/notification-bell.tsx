@@ -5,6 +5,7 @@ import { Bell } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchNotifications, markAllRead } from '@/lib/notifications'
 import { useNotificationStore } from '@/store/notification.store'
+import { useAuthStore } from '@/store/auth.store'
 
 function timeAgo(iso: string): string {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
@@ -20,11 +21,13 @@ export function NotificationBell() {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const queryClient = useQueryClient()
   const { notifications, unreadCount, setInitial, clearUnread } = useNotificationStore()
+  const accessToken = useAuthStore((s) => s.accessToken)
 
   const { data } = useQuery({
     queryKey: ['notifications'],
     queryFn: fetchNotifications,
     staleTime: 30_000,
+    enabled: !!accessToken,
   })
 
   useEffect(() => {

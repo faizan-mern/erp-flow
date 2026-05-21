@@ -13,7 +13,7 @@ Multi-tenant SaaS ERP platform built for the Cyberify Senior Full Stack Develope
 | Database | PostgreSQL (shared DB, `companyId` row-level isolation) |
 | Cache | Redis |
 | Real-time | Socket.IO (company-scoped rooms) |
-| Auth | JWT access tokens (15 min) + refresh tokens (7 days, httpOnly cookie) |
+| Auth | JWT access tokens (2 hr) + refresh tokens (7 days, httpOnly cookie, rotation) |
 | AI | OpenRouter — real integration, configurable model, live DB tool-calling |
 | File uploads | Cloudinary (expense invoices) |
 | Infrastructure | Docker Compose, Nginx reverse proxy, GitHub Actions CI |
@@ -100,7 +100,7 @@ Copy `.env.example` to `.env` in the repo root.
 | `JWT_ACCESS_SECRET` | Yes | dev default | Sign access tokens |
 | `JWT_REFRESH_SECRET` | Yes | dev default | Sign refresh tokens |
 | `OPENROUTER_API_KEY` | Yes (AI module) | — | Free key at openrouter.ai |
-| `OPENROUTER_MODEL` | No | `qwen/qwen3-coder:free` | Any OpenRouter model slug |
+| `OPENROUTER_MODEL` | No | `openai/gpt-oss-120b:free` | Any OpenRouter model slug |
 | `CLOUDINARY_CLOUD_NAME` | Yes (uploads) | — | From cloudinary.com dashboard |
 | `CLOUDINARY_API_KEY` | Yes (uploads) | — | From cloudinary.com dashboard |
 | `CLOUDINARY_API_SECRET` | Yes (uploads) | — | From cloudinary.com dashboard |
@@ -165,9 +165,9 @@ See [docs/ROLES.md](docs/ROLES.md) for the full permission breakdown.
 ### Authentication Flow
 
 ```
-Login  → access token (15 min, stored in memory) + refresh token (7 days, httpOnly cookie)
+Login   → access token (2 hr, memory-only) + refresh token (7 days, httpOnly cookie)
 Refresh → old refresh token deleted, new pair issued (rotation prevents replay attacks)
-Logout → refresh token deleted from DB, cookie cleared
+Logout  → refresh token deleted from DB, cookie cleared
 ```
 
 ### AI Integration

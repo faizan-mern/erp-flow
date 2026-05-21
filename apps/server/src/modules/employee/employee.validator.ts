@@ -12,8 +12,9 @@ export const createEmployeeSchema = z.object({
   userId: z.string().uuid().optional(),
 })
 
-// All fields optional on update — only send what changed
-export const updateEmployeeSchema = createEmployeeSchema.partial()
+export const updateEmployeeSchema = createEmployeeSchema.partial().extend({
+  isActive: z.boolean().optional(),
+})
 
 export const listEmployeesQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),

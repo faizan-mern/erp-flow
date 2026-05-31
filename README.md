@@ -1,6 +1,17 @@
 # ERPFlow — Enterprise ERP Platform
 
-Multi-tenant SaaS ERP platform built for the Cyberify Senior Full Stack Developer assessment.
+Multi-tenant SaaS ERP platform where multiple companies can independently manage their employees, track expenses, control inventory, and get AI-driven insights — all on one shared platform with complete data isolation between tenants.
+
+**Key features:**
+- Role-based access: Super Admin, Company Admin, Manager, Employee
+- JWT authentication with refresh token rotation (httpOnly cookie)
+- Real-time notifications and live inventory updates via Socket.IO
+- AI assistant with live database tool-calling (OpenRouter)
+- Expense approval workflow with segregation-of-duties enforcement
+- Stock movement ledger with row-locked transactions
+- Attendance tracking with timezone-aware check-in/out
+- Redis-cached dashboard aggregations
+- Full audit log with IP address tracking
 
 ---
 
@@ -221,7 +232,7 @@ erp-platform/
 │   └── server/       Express backend
 ├── docs/             Architecture docs, database schema, role reference
 ├── nginx/            Reverse proxy config
-├── docker-compose.yml        Full stack (evaluator workflow)
+├── docker-compose.yml        Full stack (all services)
 ├── docker-compose.dev.yml    Infra only (postgres + redis for local dev)
 └── .env.example      All variables documented with defaults
 ```
@@ -250,28 +261,9 @@ erp-platform/
 
 | Document | Description |
 |---|---|
-| [docs/SUBMISSION_ARCHITECTURE.md](docs/SUBMISSION_ARCHITECTURE.md) | Full system design, data flows, security |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Full system design, data flows, security |
 | [docs/SCHEMA_DIAGRAM.md](docs/SCHEMA_DIAGRAM.md) | Database ERD (renders on GitHub) |
 | [docs/ROLES.md](docs/ROLES.md) | Role permissions and enforcement |
 | [docs/DATABASE.md](docs/DATABASE.md) | Table-by-table schema reference |
 | `http://localhost:5000/api/docs` | Swagger UI (requires stack running) |
 
----
-
-## Deployment Note
-
-A cloud deployment was attempted on Railway (backend) + Vercel (frontend). Railway's free-tier
-credit was exhausted during the deployment process — the platform no longer offers a persistent
-free tier for always-on services. Vercel deployment of the frontend was successful but requires
-the Railway backend URL to be set as a build argument, which could not be completed without a
-live backend.
-
-The full stack runs locally from a single command with no manual configuration required:
-
-```bash
-docker compose up --build
-```
-
-All five services (PostgreSQL, Redis, Express backend, Next.js frontend, Nginx) start from
-this one command. The Docker setup was specifically designed so evaluators do not need any
-cloud accounts or paid services to run the application.

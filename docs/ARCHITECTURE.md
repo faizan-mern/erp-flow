@@ -1,6 +1,4 @@
-# ERPFlow — Architecture Submission Document
-
-> Candidate: Faizan Shahid | Assessment: Senior Full Stack Developer (MERN + Next.js + SaaS) | Cyberify
+# ERPFlow — System Architecture
 
 ---
 
@@ -432,7 +430,7 @@ jobs:
 
 ### Environment
 ```
-docker-compose.yml       ← full stack (evaluator workflow)
+docker-compose.yml       ← full stack (all services)
 docker-compose.dev.yml   ← infra only (postgres + redis for local dev with hot reload)
 .env.example             ← all variables documented with safe defaults
 ```
